@@ -585,9 +585,12 @@ symlink_shared() {
 
     # Get list of files in shared directory (excluding subdirectories for now)
     local shared_files=()
-    for f in "$shared_dir"/*; do
+    for f in "$shared_dir"/* "$shared_dir"/.*; do
         if [ -f "$f" ]; then
-            shared_files+=("$(basename "$f")")
+            local filename=$(basename "$f")
+            # Skip . and ..
+            [[ "$filename" == "." || "$filename" == ".." ]] && continue
+            shared_files+=("$filename")
         fi
     done
 
@@ -684,9 +687,12 @@ setup_planets() {
 
     # Show current files in shared
     local shared_files=()
-    for f in "$shared_dir"/*; do
+    for f in "$shared_dir"/* "$shared_dir"/.*; do
         if [ -f "$f" ]; then
-            shared_files+=("$(basename "$f")")
+            local filename=$(basename "$f")
+            # Skip . and ..
+            [[ "$filename" == "." || "$filename" == ".." ]] && continue
+            shared_files+=("$filename")
         fi
     done
 
