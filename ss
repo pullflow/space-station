@@ -888,7 +888,7 @@ elif [ "$1" = "agent" ]; then
         item_type=$2
         item_number=$3
         if [[ "$item_type" =~ ^(issue|pr)$ ]]; then
-            agent_args="we will work on gh ${item_type} ${item_number}"
+            agent_args="focus on gh ${item_type} ${item_number}"
         else
             echo -e "${RED}Error: Invalid type '${item_type}'. Use: issue or pr${NC}"
             exit 1
