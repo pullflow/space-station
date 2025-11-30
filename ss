@@ -15,10 +15,6 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Show header
-echo -e "${CYAN}🛸 Space Station${NC}"
-echo ""
-
 # Allow init to run without config (to help create config)
 if [ "$1" = "init" ]; then
     # Init will handle config creation
@@ -792,7 +788,9 @@ setup_planets() {
 if [ $# -eq 0 ] || [ "$1" = "launch" ]; then
     # No arguments or "launch": launch subshell
     # Launch a subshell with space station prompt
-    echo -e "🚀 ${BLUE}Launching Space Station shell...${NC}"
+    echo -e "${CYAN}🛸 Space Station${NC}"
+    echo ""
+    echo -e "🚀 ${BLUE}Launching shell...${NC}"
     echo -e "${YELLOW}Type 'exit' to return to normal shell${NC}"
     echo ""
 
@@ -860,8 +858,8 @@ elif [ "$1" = "sync" ]; then
     sync_issues
 elif [ "$1" = "symlink" ]; then
     symlink_shared
-elif [ "$1" = "pr" ]; then
-    # PR command
+elif [ "$1" = "prs" ]; then
+    # PRs command
     if [ $# -lt 2 ]; then
         # No PR number provided, list PRs
         list_prs
@@ -903,8 +901,8 @@ elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo -e "  ${GREEN}ss symlink${NC}                Symlink all files from ./shared to all planets"
     echo -e "  ${GREEN}ss issues${NC}                 Show open issues assigned to you"
     echo -e "  ${GREEN}ss sync${NC}                   Sync GitHub issues to todo.md"
-    echo -e "  ${GREEN}ss pr${NC}                     List open PRs (authored by you or awaiting review)"
-    echo -e "  ${GREEN}ss pr <number> [planet]${NC}   Checkout PR in a planet (default: earth)"
+    echo -e "  ${GREEN}ss prs${NC}                    List open PRs (authored by you or awaiting review)"
+    echo -e "  ${GREEN}ss prs <number> [planet]${NC}  Checkout PR in a planet (default: earth)"
     echo -e "  ${GREEN}ss [a|b|c|d|earth]${NC}        Open planet in editor"
     echo -e "  ${GREEN}ss reset [a|b|c|d|earth]${NC}  Reset planet to latest main"
     echo -e "  ${GREEN}ss config${NC}                 Show current configuration"
