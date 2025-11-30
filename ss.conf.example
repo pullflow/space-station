@@ -1,0 +1,12 @@
+# Space Station Configuration
+# Copy this file to ss.conf and update with your settings
+
+# GitHub repository (owner/repo format)
+REPO="owner/repo-name"
+
+# Directory where planets will be created
+UNIVERSE_DIR="~/myproject/universe"
+
+# Editor to open planets in (optional, defaults to cursor)
+EDITOR="cursor"
+

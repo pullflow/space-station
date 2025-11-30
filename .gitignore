@@ -4,4 +4,6 @@
 # Track these files
 !.gitignore
 !ss
+!ss.conf.example
 !README.md
+!LICENSE

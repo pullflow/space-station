@@ -1,20 +1,37 @@
 # 🛸 Space Station
 
-A workspace for managing multiple parallel clones of the [coagency](https://github.com/pullflow/coagency) repository.
+Manage multiple parallel clones of a repository for simultaneous feature development.
 
-## Why Spaces?
+## Why Planets?
 
-Instead of constantly switching branches, spaces lets you work on multiple features/PRs simultaneously by maintaining separate clones:
+Instead of constantly switching branches, Space Station lets you work on multiple features/PRs simultaneously by maintaining separate clones (planets):
 
 ```
-spaces/
-├── coagency-a/      # Working on feature X
-├── coagency-b/      # Reviewing PR Y
-├── coagency-c/      # Bug fix Z
-├── coagency-d/      # Available
-├── coagency-e/      # Available
-├── coagency-main/   # Always on main branch
-└── shared/          # Shared env files (symlinked to all spaces)
+universe/
+├── planet-a/        # Working on feature X
+├── planet-b/        # Reviewing PR Y
+├── planet-c/        # Bug fix Z
+├── planet-d/        # Available
+├── planet-earth/    # Always on main branch 🌍
+└── shared/          # Shared env files (symlinked to all planets)
+```
+
+## Installation
+
+1. Clone this repo or copy `ss` to your desired location
+2. Make it executable: `chmod +x ss`
+3. Create `ss.conf` in the same directory:
+
+```bash
+REPO="owner/repo-name"
+UNIVERSE_DIR="~/myproject/universe"
+EDITOR="cursor"  # optional, defaults to cursor
+```
+
+4. Run init to set up your environment:
+
+```bash
+./ss init
 ```
 
 ## Quick Start
@@ -31,7 +48,7 @@ spaces/
 # 3. Clone repos and link env files
 ss setup
 
-# 4. Check status of all spaces
+# 4. Check status of all planets
 ss
 ```
 
@@ -39,13 +56,13 @@ ss
 
 | Command | Description |
 |---------|-------------|
-| `ss` | Show status of all spaces (branch, changes, PR info) |
+| `ss` | Show status of all planets (branch, changes, PR info) |
 | `ss init` | Initialize environment (PATH, aliases, check env files) |
-| `ss setup` | Clone all spaces, install deps, symlink env files |
-| `ss [a\|b\|c\|d\|e\|main]` | Open a space in Cursor |
+| `ss setup` | Clone all planets, install deps, symlink env files |
+| `ss [a\|b\|c\|d\|earth]` | Open a planet in your editor |
 | `ss pr` | List open PRs (authored by you or awaiting review) |
-| `ss pr <number> [space]` | Checkout PR in a space (default: main) |
-| `ss reset <space>` | Reset a space to latest main |
+| `ss pr <number> [planet]` | Checkout PR in a planet (default: earth) |
+| `ss reset <planet>` | Reset a planet to latest main |
 | `ss issues` | Show open issues assigned to you |
 | `ss sync` | Sync GitHub issues to todo.md |
 
@@ -56,20 +73,20 @@ When you run `ss` with no arguments, you'll see:
 ```
 🛸 Space Station
 
-coagency-a: feature-branch [Active:3] PR#123(OPEN) ✓2/⧗1/✗0 ✓Checks
-coagency-b: main [Available] No PR
+🪐 planet-a: feature-branch [🔧Active:3] PR#123(OPEN) ✓2/⧗1/✗0 ✓Checks
+🪐 planet-b: main [✨Available] No PR
 ...
 ```
 
-- **Active:N** - N uncommitted changes
-- **Available** - Clean git status
+- **🔧Active:N** - N uncommitted changes
+- **✨Available** - Clean git status
 - **PR#N** - Associated pull request
 - **✓/⧗/✗** - Approved/Pending/Changes Requested reviews
 - **Checks** - CI status (✓ passing, ✗ failing, ⧗ pending)
 
 ## Shared Environment Files
 
-All spaces share the same env files via symlinks:
+All planets share the same env files via symlinks:
 
 ```
 shared/
@@ -80,32 +97,35 @@ shared/
     └── .env
 ```
 
-Edit once in `shared/`, changes apply to all spaces.
+Edit once in `shared/`, changes apply to all planets.
 
 ## Workflow Example
 
 ```bash
 # Start work on a new PR
-ss pr 456 a              # Checkout PR #456 in space a
-ss a                     # Open space a in Cursor
+ss pr 456 a              # Checkout PR #456 in planet-a
+ss a                     # Open planet-a in editor
 
 # While waiting for review, work on something else
-ss pr 789 b              # Checkout PR #789 in space b
-ss b                     # Open space b in Cursor
+ss pr 789 b              # Checkout PR #789 in planet-b
+ss b                     # Open planet-b in editor
 
 # Check status of everything
-ss                       # See all spaces at a glance
+ss                       # See all planets at a glance
 
-# Done with a PR? Reset the space
-ss reset a               # Reset space a to main
+# Done with a PR? Reset the planet
+ss reset a               # Reset planet-a to main
 ```
 
 ## Prerequisites
 
-- [GitHub CLI](https://cli.github.com/) (`gh`) - authenticated
-- [pnpm](https://pnpm.io/)
-- [jq](https://stedolan.github.io/jq/)
-- [Cursor](https://cursor.sh/) (or change `EDITOR` in the script)
+The `ss setup` command will check for these dependencies and help you install them:
+
+- **git** - `brew install git`
+- **gh** (GitHub CLI) - `brew install gh && gh auth login`
+- **pnpm** - `brew install pnpm`
+- **jq** - `brew install jq`
+- An editor (defaults to [Cursor](https://cursor.sh/))
 
 ## Aliases
 
@@ -115,3 +135,6 @@ ss reset a               # Reset space a to main
 alias cl="claude --dangerously-skip-permissions"
 ```
 
+## License
+
+MIT - see [LICENSE](LICENSE)

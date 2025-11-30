@@ -1,12 +1,11 @@
 #!/bin/bash
 
-# Get the directory where this script lives
-SPACES_DIR="~/coagency/spaces"
-REPO="pullflow/coagency"
-EDITOR="cursor"
+# 🛸 Space Station - Manage multiple parallel repo clones
+# https://github.com/AshDevFr/space-station
 
-# Change to the script directory
-cd "$SPACES_DIR"
+# Get the directory where this script lives
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/ss.conf"
 
 # Colors
 RED='\033[0;31m'
@@ -20,9 +19,45 @@ NC='\033[0m' # No Color
 echo -e "${CYAN}🛸 Space Station${NC}"
 echo ""
 
-# Function to show status for all spaces
+# Load configuration
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+else
+    echo -e "${RED}❌ Configuration file not found: ${CONFIG_FILE}${NC}"
+    echo ""
+    echo -e "${YELLOW}Create ss.conf with:${NC}"
+    echo -e "  REPO=\"owner/repo-name\""
+    echo -e "  UNIVERSE_DIR=\"~/myproject/universe\""
+    echo -e "  EDITOR=\"cursor\"  # optional, defaults to cursor"
+    exit 1
+fi
+
+# Validate required config
+if [ -z "$REPO" ]; then
+    echo -e "${RED}❌ REPO not set in ${CONFIG_FILE}${NC}"
+    exit 1
+fi
+
+if [ -z "$UNIVERSE_DIR" ]; then
+    echo -e "${RED}❌ UNIVERSE_DIR not set in ${CONFIG_FILE}${NC}"
+    exit 1
+fi
+
+# Set defaults
+EDITOR="${EDITOR:-cursor}"
+
+# Expand ~ in UNIVERSE_DIR
+UNIVERSE_DIR="${UNIVERSE_DIR/#\~/$HOME}"
+
+# Change to the universe directory
+if [ ! -d "$UNIVERSE_DIR" ]; then
+    mkdir -p "$UNIVERSE_DIR"
+fi
+cd "$UNIVERSE_DIR"
+
+# Function to show status for all planets
 show_status() {
-    for dir in coagency-*/; do
+    for dir in planet-*/; do
         if [ -d "$dir" ]; then
             cd "$dir"
             space_name="${dir%/}"
@@ -31,10 +66,10 @@ show_status() {
             # Git status
             status=$(git status --porcelain)
             if [ -z "$status" ]; then
-                git_status="${GREEN}Available${NC}"
+                git_status="${GREEN}✨Available${NC}"
             else
                 changed_count=$(echo "$status" | wc -l | tr -d ' ')
-                git_status="${YELLOW}Active:${changed_count}${NC}"
+                git_status="${YELLOW}🔧Active:${changed_count}${NC}"
             fi
 
             # Get associated PR
@@ -67,9 +102,9 @@ show_status() {
                     checks_info="${YELLOW}~Checks${NC}"
                 fi
 
-                echo -e "${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${pr_info} ${reviews_info} ${checks_info}"
+                echo -e "🪐 ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${pr_info} ${reviews_info} ${checks_info}"
             else
-                echo -e "${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${RED}No PR${NC}"
+                echo -e "🪐 ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${RED}No PR${NC}"
             fi
             cd ..
         fi
@@ -78,7 +113,7 @@ show_status() {
 
 # Function to show open issues assigned to the current user
 show_issues() {
-    echo -e "${BLUE}Fetching open issues assigned to you in ${REPO}...${NC}"
+    echo -e "📋 ${BLUE}Fetching open issues assigned to you in ${REPO}...${NC}"
     issue_json=$(gh issue list -R "$REPO" --state open --assignee "@me" --json number,title,labels --limit 100 2>/dev/null)
 
     if [ $? -ne 0 ]; then
@@ -106,7 +141,7 @@ show_issues() {
 
 # Function to sync issues to todo.md
 sync_issues() {
-    local todo_file="$SPACES_DIR/todo.md"
+    local todo_file="$UNIVERSE_DIR/todo.md"
 
     if [ ! -f "$todo_file" ]; then
         echo -e "${RED}Error: todo.md not found at ${todo_file}${NC}"
@@ -172,16 +207,16 @@ sync_issues() {
     fi
 }
 
-# Function to open a space in Zed
-open_space() {
-    local space="coagency-$1"
-    echo -e "${BLUE}Opening space '${space}' in $EDITOR...${NC}"
-    $EDITOR "$space"
+# Function to open a planet
+open_planet() {
+    local planet="planet-$1"
+    echo -e "🪐 ${BLUE}Opening planet '${planet}' in $EDITOR...${NC}"
+    $EDITOR "$planet"
 }
 
 # Function to list PRs authored by user or awaiting their review
 list_prs() {
-    echo -e "${BLUE}Fetching PRs authored by you or awaiting your review in ${REPO}...${NC}"
+    echo -e "🔀 ${BLUE}Fetching PRs authored by you or awaiting your review in ${REPO}...${NC}"
     
     # Get PRs authored by the user
     authored_json=$(gh pr list -R "$REPO" --state open --author "@me" --json number,title,labels --limit 100 2>/dev/null)
@@ -216,18 +251,18 @@ list_prs() {
     done
 }
 
-# Function to checkout a PR in a space
+# Function to checkout a PR in a planet
 checkout_pr() {
     local pr_number=$1
-    local space=${2:-main}  # Default to "main" if not provided
-    local space_dir="coagency-${space}"
+    local space=${2:-earth}  # Default to "earth" if not provided
+    local space_dir="planet-${space}"
 
     if [ ! -d "$space_dir" ]; then
-        echo -e "${RED}Error: Space directory '${space_dir}' does not exist${NC}"
+        echo -e "${RED}Error: Planet directory '${space_dir}' does not exist${NC}"
         exit 1
     fi
 
-    echo -e "${BLUE}Checking out PR #${pr_number} in space '${space}'...${NC}"
+    echo -e "🚀 ${BLUE}Checking out PR #${pr_number} in planet '${space}'...${NC}"
     cd "$space_dir"
 
     # Get the branch name for the PR
@@ -324,7 +359,7 @@ checkout_pr() {
     fi
 
     # Open the folder in the editor with the PR description file
-    echo -e "${BLUE}Opening space in $EDITOR...${NC}"
+    echo -e "🪐 ${BLUE}Opening planet in $EDITOR...${NC}"
     # Open a new window with the directory and PR file - this prevents opening previous files
     if [[ "$EDITOR" == *"cursor"* ]]; then
         $EDITOR --new-window "$(pwd)" "$pr_file_path"
@@ -333,21 +368,21 @@ checkout_pr() {
     fi
 
     # Return to spaces folder
-    cd "$SPACES_DIR"
-    echo -e "${GREEN}Successfully checked out PR #${pr_number} in space '${space}'${NC}"
+    cd "$UNIVERSE_DIR"
+    echo -e "✅ ${GREEN}Successfully checked out PR #${pr_number} in planet '${space}'${NC}"
 }
 
-# Function to reset a space
-reset_space() {
+# Function to reset a planet
+reset_planet() {
     local space=$1
-    local space_dir="coagency-${space}"
+    local space_dir="planet-${space}"
 
     if [ ! -d "$space_dir" ]; then
-        echo -e "${RED}Error: Space directory '${space_dir}' does not exist${NC}"
+        echo -e "${RED}Error: Planet directory '${space_dir}' does not exist${NC}"
         exit 1
     fi
 
-    echo -e "${BLUE}Resetting space '${space}'...${NC}"
+    echo -e "🔄 ${BLUE}Resetting planet '${space}'...${NC}"
     cd "$space_dir"
 
     # Check if git status is clean
@@ -373,7 +408,7 @@ reset_space() {
     git pull origin main
 
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}Successfully reset space '${space}' to latest main${NC}"
+        echo -e "✅ ${GREEN}Successfully reset planet '${space}' to latest main${NC}"
     else
         echo -e "${RED}Error: Failed to pull from origin${NC}"
         cd ..
@@ -384,12 +419,12 @@ reset_space() {
 }
 
 # Function to initialize user environment
-init_spaces() {
+init_planets() {
     local zshrc="$HOME/.zshrc"
     local changes_made=false
     local env_local_files=(".env.local" ".env.preflight.local" ".env.production.local")
 
-    echo -e "${BLUE}Initializing spaces environment...${NC}"
+    echo -e "🛸 ${BLUE}Initializing Space Station environment...${NC}"
     echo ""
 
     # 1. Add cl alias to ~/.zshrc
@@ -405,23 +440,22 @@ init_spaces() {
         changes_made=true
     fi
 
-    # 2. Add SPACES_DIR to PATH in ~/.zshrc
-    local expanded_spaces_dir="${SPACES_DIR/#\~/$HOME}"
-    if grep -q "PATH=.*${expanded_spaces_dir}" "$zshrc" 2>/dev/null || grep -q "PATH=.*\$SPACES_DIR" "$zshrc" 2>/dev/null; then
-        echo -e "${GREEN}✓ SPACES_DIR already in PATH in ~/.zshrc${NC}"
+    # 2. Add UNIVERSE_DIR to PATH in ~/.zshrc
+    if grep -q "PATH=.*${UNIVERSE_DIR}" "$zshrc" 2>/dev/null; then
+        echo -e "${GREEN}✓ Universe directory already in PATH in ~/.zshrc${NC}"
     else
-        echo -e "${BLUE}Adding SPACES_DIR to PATH in ~/.zshrc...${NC}"
+        echo -e "${BLUE}Adding universe directory to PATH in ~/.zshrc...${NC}"
         echo "" >> "$zshrc"
-        echo "# Spaces directory (added by ss init)" >> "$zshrc"
-        echo "export PATH=\"\$PATH:${expanded_spaces_dir}\"" >> "$zshrc"
-        echo -e "${GREEN}✓ Added ${expanded_spaces_dir} to PATH${NC}"
+        echo "# Universe directory (added by ss init)" >> "$zshrc"
+        echo "export PATH=\"\$PATH:${UNIVERSE_DIR}\"" >> "$zshrc"
+        echo -e "${GREEN}✓ Added ${UNIVERSE_DIR} to PATH${NC}"
         changes_made=true
     fi
 
     echo ""
 
     # 3. Create shared directory and prompt about env files
-    local shared_dir="$SPACES_DIR/shared"
+    local shared_dir="$UNIVERSE_DIR/shared"
     mkdir -p "$shared_dir"
 
     echo -e "${BLUE}Checking shared env files...${NC}"
@@ -453,7 +487,7 @@ init_spaces() {
         echo -e "${BLUE}Please add your env files to:${NC}"
         echo -e "    ${YELLOW}${shared_dir}/${NC}"
         echo ""
-        echo -e "These files will be symlinked to all spaces when you run ${GREEN}ss setup${NC}"
+        echo -e "These files will be symlinked to all planets when you run ${GREEN}ss setup${NC}"
     else
         echo -e "${GREEN}✓ All env files present in ./shared${NC}"
     fi
@@ -468,18 +502,79 @@ init_spaces() {
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     fi
 
-    echo -e "${GREEN}Init complete!${NC}"
+    echo -e "✅ ${GREEN}Init complete!${NC}"
 }
 
-# Function to setup all spaces
-setup_spaces() {
-    local spaces=("a" "b" "c" "d" "e" "main")
+# Function to check dependencies
+check_deps() {
+    local missing_deps=()
+    local install_cmds=()
+
+    # Check for git
+    if ! command -v git &> /dev/null; then
+        missing_deps+=("git")
+        install_cmds+=("  brew install git")
+    fi
+
+    # Check for gh (GitHub CLI)
+    if ! command -v gh &> /dev/null; then
+        missing_deps+=("gh (GitHub CLI)")
+        install_cmds+=("  brew install gh && gh auth login")
+    fi
+
+    # Check for pnpm
+    if ! command -v pnpm &> /dev/null; then
+        missing_deps+=("pnpm")
+        install_cmds+=("  brew install pnpm")
+    fi
+
+    # Check for jq
+    if ! command -v jq &> /dev/null; then
+        missing_deps+=("jq")
+        install_cmds+=("  brew install jq")
+    fi
+
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        echo -e "${RED}❌ Missing dependencies:${NC}"
+        for dep in "${missing_deps[@]}"; do
+            echo -e "    ${RED}• $dep${NC}"
+        done
+        echo ""
+        echo -e "${YELLOW}Install with:${NC}"
+        for cmd in "${install_cmds[@]}"; do
+            echo -e "${GREEN}$cmd${NC}"
+        done
+        echo ""
+        return 1
+    fi
+
+    # Check if gh is authenticated
+    if ! gh auth status &> /dev/null; then
+        echo -e "${RED}❌ GitHub CLI not authenticated${NC}"
+        echo -e "${YELLOW}Run:${NC} ${GREEN}gh auth login${NC}"
+        return 1
+    fi
+
+    echo -e "${GREEN}✅ All dependencies installed${NC}"
+    return 0
+}
+
+# Function to setup all planets
+setup_planets() {
+    local spaces=("a" "b" "c" "d" "earth")
     local repo_url="https://github.com/${REPO}.git"
-    local shared_env_dir="$SPACES_DIR/shared/env"
-    local shared_dir="$SPACES_DIR/shared"
+    local shared_env_dir="$UNIVERSE_DIR/shared/env"
+    local shared_dir="$UNIVERSE_DIR/shared"
     # List of env files to manage (in order of priority for copying)
     local env_files=(".env" ".env.local" ".env.preflight.local" ".env.production.local")
     local env_local_files=(".env.local" ".env.preflight.local" ".env.production.local")
+
+    # Check dependencies first
+    echo -e "🔍 ${BLUE}Checking dependencies...${NC}"
+    if ! check_deps; then
+        return 1
+    fi
+    echo ""
 
     # Check that required .env*.local files exist in shared
     local missing_env_files=()
@@ -502,7 +597,7 @@ setup_spaces() {
         return 1
     fi
 
-    echo -e "${BLUE}Setting up spaces...${NC}"
+    echo -e "🌌 ${BLUE}Setting up planets...${NC}"
     echo ""
 
     # Create shared/env directory
@@ -529,7 +624,7 @@ setup_spaces() {
             # Try to copy from first existing space's env file
             local found_env=""
             for space in "${spaces[@]}"; do
-                local space_dir="coagency-${space}"
+                local space_dir="planet-${space}"
                 if [ -f "$space_dir/$env_file" ] && [ ! -L "$space_dir/$env_file" ]; then
                     found_env="$space_dir/$env_file"
                     break
@@ -537,7 +632,7 @@ setup_spaces() {
             done
 
             if [ -n "$found_env" ]; then
-                echo -e "${BLUE}Copying ${env_file} from existing space to shared location...${NC}"
+                echo -e "${BLUE}Copying ${env_file} from existing planet to shared location...${NC}"
                 cp "$found_env" "$shared_env_file"
             else
                 # For .env, check if repo has it tracked in git
@@ -556,10 +651,10 @@ setup_spaces() {
 
     echo ""
 
-    # Setup each space
+    # Setup each planet
     for space in "${spaces[@]}"; do
-        local space_dir="coagency-${space}"
-        echo -e "${BLUE}Setting up space: ${space_dir}${NC}"
+        local space_dir="planet-${space}"
+        echo -e "🪐 ${BLUE}Setting up planet: ${space_dir}${NC}"
 
         # Check if directory exists
         if [ ! -d "$space_dir" ]; then
@@ -666,7 +761,7 @@ setup_spaces() {
             fi
         done
 
-        cd "$SPACES_DIR"
+        cd "$UNIVERSE_DIR"
         echo ""
     done
 
@@ -678,9 +773,9 @@ if [ $# -eq 0 ]; then
     # No arguments: show status
     show_status
 elif [ "$1" = "init" ]; then
-    init_spaces
+    init_planets
 elif [ "$1" = "setup" ]; then
-    setup_spaces
+    setup_planets
 elif [ "$1" = "issues" ]; then
     show_issues
 elif [ "$1" = "sync" ]; then
@@ -694,8 +789,8 @@ elif [ "$1" = "pr" ]; then
         # PR number provided, checkout the PR
         pr_number=$2
         space=${3:-main}  # Default to "main" if not provided
-        if [[ ! "$space" =~ ^(a|b|c|d|e|main)$ ]]; then
-            echo -e "${RED}Error: Invalid space name. Use: a, b, c, d, e, or main${NC}"
+        if [[ ! "$space" =~ ^(a|b|c|d|earth)$ ]]; then
+            echo -e "${RED}Error: Invalid planet name. Use: a, b, c, d, or earth${NC}"
             exit 1
         fi
         checkout_pr "$pr_number" "$space"
@@ -703,25 +798,25 @@ elif [ "$1" = "pr" ]; then
 elif [ "$1" = "reset" ] || [ "$1" = "-r" ]; then
     # Reset command
     if [ $# -ne 2 ]; then
-        echo -e "${RED}Usage: $0 reset|-r [a|b|main]${NC}"
+        echo -e "${RED}Usage: $0 reset|-r [a|b|c|d|earth]${NC}"
         exit 1
     fi
-    reset_space "$2"
+    reset_planet "$2"
 else
-    # Open space in Zed
-    if [[ "$1" =~ ^(a|b|c|d|e|main)$ ]]; then
-        open_space "$1"
+    # Open planet in editor
+    if [[ "$1" =~ ^(a|b|c|d|earth)$ ]]; then
+        open_planet "$1"
     else
-        echo -e "${RED}Error: Invalid space name. Use: a, b, c, d, e, or main${NC}"
+        echo -e "${RED}Error: Invalid planet name. Use: a, b, c, d, or earth${NC}"
         echo -e "${YELLOW}Usage:${NC}"
-        echo -e "  $0                    - Show status of all spaces"
+        echo -e "  $0                    - Show status of all planets"
         echo -e "  $0 init               - Initialize environment (add alias, PATH, check env files)"
-        echo -e "  $0 setup              - Setup/create all spaces, install deps, link envs"
+        echo -e "  $0 setup              - Setup/create all planets, install deps, link envs"
         echo -e "  $0 issues             - Show open issues assigned to you"
         echo -e "  $0 sync               - Sync GitHub issues to todo.md"
-        echo -e "  $0 pr [number] [space] - List PRs or checkout PR in space (default: main)"
-        echo -e "  $0 [a|b|c|d|e|main]   - Open space in Zed"
-        echo -e "  $0 reset|-r [a|b|c|d|e|main] - Reset space to latest main"
+        echo -e "  $0 pr [number] [planet] - List PRs or checkout PR in planet (default: earth)"
+        echo -e "  $0 [a|b|c|d|earth]    - Open planet in editor"
+        echo -e "  $0 reset|-r [a|b|c|d|earth] - Reset planet to latest main"
         exit 1
     fi
 fi
