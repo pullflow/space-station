@@ -40,22 +40,22 @@ else
         exit 1
     fi
 
-    if [ -z "$UNIVERSE_DIR" ]; then
-        echo -e "${RED}❌ UNIVERSE_DIR not set in ${CONFIG_FILE}${NC}"
+    if [ -z "$SPACESTATION_DIR" ]; then
+        echo -e "${RED}❌ SPACESTATION_DIR not set in ${CONFIG_FILE}${NC}"
         exit 1
     fi
 
     # Set defaults
     EDITOR="${EDITOR:-cursor}"
 
-    # Expand ~ in UNIVERSE_DIR
-    UNIVERSE_DIR="${UNIVERSE_DIR/#\~/$HOME}"
+    # Expand ~ in SPACESTATION_DIR
+    SPACESTATION_DIR="${SPACESTATION_DIR/#\~/$HOME}"
 
     # Change to the universe directory
-    if [ ! -d "$UNIVERSE_DIR" ]; then
-        mkdir -p "$UNIVERSE_DIR"
+    if [ ! -d "$SPACESTATION_DIR" ]; then
+        mkdir -p "$SPACESTATION_DIR"
     fi
-    cd "$UNIVERSE_DIR"
+    cd "$SPACESTATION_DIR"
 fi
 
 # Function to show status for all planets
@@ -144,7 +144,7 @@ show_issues() {
 
 # Function to sync issues to todo.md
 sync_issues() {
-    local todo_file="$UNIVERSE_DIR/todo.md"
+    local todo_file="$SPACESTATION_DIR/todo.md"
 
     if [ ! -f "$todo_file" ]; then
         echo -e "${RED}Error: todo.md not found at ${todo_file}${NC}"
@@ -362,7 +362,7 @@ checkout_pr() {
     fi
 
     # Return to spaces folder
-    cd "$UNIVERSE_DIR"
+    cd "$SPACESTATION_DIR"
     echo -e "✅ ${GREEN}Successfully checked out PR #${pr_number} in planet '${space}'${NC}"
 }
 
@@ -430,8 +430,11 @@ init_planets() {
         if [ -f "$SCRIPT_DIR/ss.conf.example" ]; then
             echo -e "${YELLOW}📋 Creating ss.conf from example...${NC}"
             cp "$SCRIPT_DIR/ss.conf.example" "$CONFIG_FILE"
+            # Set SPACESTATION_DIR to the script's directory by default
+            sed -i '' "s|^SPACESTATION_DIR=.*|SPACESTATION_DIR=\"$SCRIPT_DIR\"|" "$CONFIG_FILE"
             echo -e "${GREEN}✓ Created ss.conf${NC}"
-            echo -e "${YELLOW}⚠ Please edit ss.conf with your REPO and UNIVERSE_DIR${NC}"
+            echo -e "${GREEN}✓ Set SPACESTATION_DIR to ${SCRIPT_DIR}${NC}"
+            echo -e "${YELLOW}⚠ Please edit ss.conf to set your REPO${NC}"
             echo -e "    ${CYAN}$CONFIG_FILE${NC}"
         else
             echo -e "${RED}❌ ss.conf.example not found${NC}"
@@ -457,18 +460,23 @@ init_planets() {
     echo ""
 
     # If config doesn't have required values, stop here
-    if [ -z "$REPO" ] || [ -z "$UNIVERSE_DIR" ]; then
+    if [ -z "$REPO" ]; then
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${YELLOW}Next steps:${NC}"
-        echo -e "  1. Edit ${CYAN}ss.conf${NC} with your repo and directory"
-        echo -e "  2. Edit ${CYAN}planet-init.sh${NC} for your project setup"
+        echo -e "  1. Edit ${CYAN}ss.conf${NC} to set your REPO (e.g., owner/repo-name)"
+        echo -e "  2. Edit ${CYAN}planet-init.sh${NC} for your project setup (optional)"
         echo -e "  3. Run ${GREEN}ss init${NC} again"
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         return 0
     fi
 
-    # Expand ~ in UNIVERSE_DIR
-    UNIVERSE_DIR="${UNIVERSE_DIR/#\~/$HOME}"
+    # Default SPACESTATION_DIR to script directory if not set
+    if [ -z "$SPACESTATION_DIR" ]; then
+        SPACESTATION_DIR="$SCRIPT_DIR"
+    fi
+
+    # Expand ~ in SPACESTATION_DIR
+    SPACESTATION_DIR="${SPACESTATION_DIR/#\~/$HOME}"
 
     # 3. Add cl alias to ~/.zshrc
     local cl_alias='alias cl="claude --dangerously-skip-permissions"'
@@ -483,22 +491,22 @@ init_planets() {
         changes_made=true
     fi
 
-    # 4. Add UNIVERSE_DIR to PATH in ~/.zshrc
-    if grep -q "PATH=.*${UNIVERSE_DIR}" "$zshrc" 2>/dev/null; then
+    # 4. Add SPACESTATION_DIR to PATH in ~/.zshrc
+    if grep -q "PATH=.*${SPACESTATION_DIR}" "$zshrc" 2>/dev/null; then
         echo -e "${GREEN}✓ Universe directory already in PATH in ~/.zshrc${NC}"
     else
         echo -e "${BLUE}Adding universe directory to PATH in ~/.zshrc...${NC}"
         echo "" >> "$zshrc"
         echo "# Universe directory (added by ss init)" >> "$zshrc"
-        echo "export PATH=\"\$PATH:${UNIVERSE_DIR}\"" >> "$zshrc"
-        echo -e "${GREEN}✓ Added ${UNIVERSE_DIR} to PATH${NC}"
+        echo "export PATH=\"\$PATH:${SPACESTATION_DIR}\"" >> "$zshrc"
+        echo -e "${GREEN}✓ Added ${SPACESTATION_DIR} to PATH${NC}"
         changes_made=true
     fi
 
     echo ""
 
     # 5. Create shared directory and prompt about env files
-    local shared_dir="$UNIVERSE_DIR/shared"
+    local shared_dir="$SPACESTATION_DIR/shared"
     mkdir -p "$shared_dir"
 
     echo -e "${BLUE}Checking shared env files...${NC}"
@@ -600,8 +608,8 @@ check_deps() {
 setup_planets() {
     local spaces=("a" "b" "c" "d" "earth")
     local repo_url="https://github.com/${REPO}.git"
-    local shared_env_dir="$UNIVERSE_DIR/shared/env"
-    local shared_dir="$UNIVERSE_DIR/shared"
+    local shared_env_dir="$SPACESTATION_DIR/shared/env"
+    local shared_dir="$SPACESTATION_DIR/shared"
     # List of env files to manage (in order of priority for copying)
     local env_files=(".env" ".env.local" ".env.preflight.local" ".env.production.local")
     local env_local_files=(".env.local" ".env.preflight.local" ".env.production.local")
@@ -800,7 +808,7 @@ setup_planets() {
             fi
         done
 
-        cd "$UNIVERSE_DIR"
+        cd "$SPACESTATION_DIR"
         echo ""
     done
 

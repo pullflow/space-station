@@ -4,8 +4,8 @@
 # GitHub repository (owner/repo format)
 REPO="owner/repo-name"
 
-# Directory where planets will be created
-UNIVERSE_DIR="~/myproject/universe"
+# Directory where planets will be created (default: ~/{project}/space-station)
+SPACESTATION_DIR="~/myproject/space-station"
 
 # Editor to open planets in (optional, defaults to cursor)
 EDITOR="cursor"

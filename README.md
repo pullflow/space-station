@@ -7,7 +7,7 @@ Manage multiple parallel clones of a repository for simultaneous feature develop
 Instead of constantly switching branches, Space Station lets you work on multiple features/PRs simultaneously by maintaining separate clones (planets):
 
 ```
-universe/
+space-station/
 ├── planet-a/        # Working on feature X
 ├── planet-b/        # Reviewing PR Y
 ├── planet-c/        # Bug fix Z
@@ -27,7 +27,7 @@ universe/
 ```
 
 4. Edit the generated config files:
-   - `ss.conf` - Set your `REPO` and `UNIVERSE_DIR`
+   - `ss.conf` - Set your `REPO` and `SPACESTATION_DIR`
    - `planet-init.sh` - Customize for your project's setup (install deps, build, etc.)
 
 5. Run init again to complete setup:
