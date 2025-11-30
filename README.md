@@ -165,6 +165,25 @@ alias agent="claude"        # default
 alias dev="pnpm dev"        # add your own
 ```
 
+## Recommended Terminal Layout
+
+Use your terminal's split view to create a 2x2 grid for maximum productivity:
+
+```
+┌─────────────────┬─────────────────┐
+│  ss launch      │  planet-a       │
+│  (command hub)  │  (feature work) │
+├─────────────────┼─────────────────┤
+│  planet-earth   │  planet-b       │
+│  (main branch)  │  (PR review)    │
+└─────────────────┴─────────────────┘
+```
+
+- **Top-left**: `ss launch` - your command hub for status checks and navigation
+- **Bottom-left**: `planet-earth` - always on main for quick reference
+- **Top-right**: `planet-a` - active feature development
+- **Bottom-right**: `planet-b` - PR review or second task
+
 ## License
 
 MIT - see [LICENSE](LICENSE)
