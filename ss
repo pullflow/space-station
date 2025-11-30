@@ -876,6 +876,18 @@ elif [ "$1" = "reset" ] || [ "$1" = "-r" ]; then
         exit 1
     fi
     reset_planet "$2"
+elif [ "$1" = "config" ]; then
+    # Show configuration
+    echo -e "${BLUE}Configuration:${NC}"
+    echo -e "  ${GREEN}REPO${NC}              $REPO"
+    echo -e "  ${GREEN}SPACESTATION_DIR${NC}  $SPACESTATION_DIR"
+    echo -e "  ${GREEN}EDITOR${NC}            $EDITOR"
+    echo ""
+    echo -e "${BLUE}Paths:${NC}"
+    echo -e "  ${GREEN}Config file${NC}       $CONFIG_FILE"
+    echo -e "  ${GREEN}Launch script${NC}     $SPACESTATION_DIR/launch.sh"
+    echo -e "  ${GREEN}Planet init${NC}       $INIT_SCRIPT"
+    echo -e "  ${GREEN}Shared dir${NC}        $SPACESTATION_DIR/shared"
 elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo -e "${YELLOW}Usage:${NC}"
     echo -e "  ${GREEN}ss${NC}                        Launch Space Station shell (default)"
@@ -889,6 +901,7 @@ elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo -e "  ${GREEN}ss pr <number> [planet]${NC}   Checkout PR in a planet (default: earth)"
     echo -e "  ${GREEN}ss [a|b|c|d|earth]${NC}        Open planet in editor"
     echo -e "  ${GREEN}ss reset [a|b|c|d|earth]${NC}  Reset planet to latest main"
+    echo -e "  ${GREEN}ss config${NC}                 Show current configuration"
     echo -e "  ${GREEN}ss help${NC}                   Show this help message"
 else
     # Open planet in editor

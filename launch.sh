@@ -15,6 +15,7 @@ alias cont="$AGENT --continue"
 # Space Station subcommand aliases
 alias help="ss help"
 alias list="ss list"
+alias config="ss config"
 alias init="ss init"
 alias setup="ss setup"
 alias symlink="ss symlink"
