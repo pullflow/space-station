@@ -47,8 +47,14 @@ else
     # Expand ~ in SPACESTATION_DIR
     SPACESTATION_DIR="${SPACESTATION_DIR/#\~/$HOME}"
 
-    # Change to the universe directory (except for launch/agent which stay in current dir)
-    if [ "$1" != "launch" ] && [ "$1" != "agent" ] && [ $# -gt 0 ]; then
+    # Source launch.sh for DEFAULT_AGENT and other vars (if it exists)
+    LAUNCH_FILE="$SCRIPT_DIR/launch.sh"
+    if [ -f "$LAUNCH_FILE" ]; then
+        source "$LAUNCH_FILE"
+    fi
+
+    # Change to the universe directory (except for commands that run from current dir)
+    if [ "$1" != "launch" ] && [ "$1" != "agent" ] && [ "$1" != "reset" ] && [ "$1" != "land" ] && [ $# -gt 0 ]; then
         if [ ! -d "$SPACESTATION_DIR" ]; then
             mkdir -p "$SPACESTATION_DIR"
         fi
@@ -364,25 +370,13 @@ checkout_pr() {
     echo -e "✅ ${GREEN}Successfully checked out PR #${pr_number} in planet '${space}'${NC}"
 }
 
-# Function to reset a planet
+# Function to reset current planet (must be run from planet folder)
 reset_planet() {
-    local space=$1
-    local space_dir="planet-${space}"
-
-    if [ ! -d "$space_dir" ]; then
-        echo -e "${RED}Error: Planet directory '${space_dir}' does not exist${NC}"
-        exit 1
-    fi
-
-    echo -e "🔄 ${BLUE}Resetting planet '${space}'...${NC}"
-    cd "$space_dir"
-
     # Check if git status is clean
     status=$(git status --porcelain)
     if [ -n "$status" ]; then
         echo -e "${RED}Error: Git status is not clean. Please commit or stash changes first.${NC}"
         echo "$status"
-        cd ..
         exit 1
     fi
 
@@ -392,7 +386,6 @@ reset_planet() {
 
     if [ $? -ne 0 ]; then
         echo -e "${RED}Error: Failed to checkout main${NC}"
-        cd ..
         exit 1
     fi
 
@@ -400,14 +393,11 @@ reset_planet() {
     git pull origin main
 
     if [ $? -eq 0 ]; then
-        echo -e "✅ ${GREEN}Successfully reset planet '${space}' to latest main${NC}"
+        echo -e "✅ ${GREEN}Successfully reset planet to latest main${NC}"
     else
         echo -e "${RED}Error: Failed to pull from origin${NC}"
-        cd ..
         exit 1
     fi
-
-    cd ..
 }
 
 # Function to initialize user environment
@@ -798,7 +788,7 @@ if [ $# -eq 0 ] || [ "$1" = "launch" ]; then
         if [ "$current_dir" = "planet-earth" ]; then
             prompt_prefix="🌎"
         else
-            prompt_prefix="🪐 ${current_dir}"
+            prompt_prefix="🪐"
         fi
     fi
 
@@ -914,13 +904,24 @@ elif [ "$1" = "agent" ]; then
         echo -e "🤖 ${BLUE}Running agent...${NC}"
         $agent_cmd
     fi
-elif [ "$1" = "reset" ] || [ "$1" = "-r" ]; then
-    # Reset command
-    if [ $# -ne 2 ]; then
-        echo -e "${RED}Usage: $0 reset|-r [a|b|c|d|earth]${NC}"
+elif [ "$1" = "reset" ]; then
+    # Reset command - must be run from a planet folder
+    current_dir=$(basename "$(pwd)")
+    if [[ ! "$current_dir" =~ ^planet- ]]; then
+        echo -e "${RED}Error: reset must be run from a planet folder${NC}"
         exit 1
     fi
-    reset_planet "$2"
+    echo -e "🔄 ${BLUE}Resetting ${current_dir}...${NC}"
+    reset_planet
+elif [ "$1" = "land" ]; then
+    # Land command - open editor in current planet folder
+    current_dir=$(basename "$(pwd)")
+    if [[ ! "$current_dir" =~ ^planet- ]]; then
+        echo -e "${RED}Error: land must be run from a planet folder${NC}"
+        exit 1
+    fi
+    echo -e "🪐 ${BLUE}Opening ${current_dir} in $EDITOR...${NC}"
+    $EDITOR "$(pwd)"
 elif [ "$1" = "config" ]; then
     # Show configuration
     echo -e "${BLUE}Configuration:${NC}"
@@ -945,9 +946,10 @@ elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo -e "  ${GREEN}ss prs${NC}                    List open PRs (authored by you or awaiting review)"
     echo -e "  ${GREEN}ss prs <number> [planet]${NC}  Checkout PR in a planet (default: earth)"
     echo -e "  ${GREEN}ss agent [issue|pr <number>]${NC}"
-    echo -e "                              Run agent, optionally with issue/pr context"
+    echo -e "                              Run agent (from planet folder), optionally with issue/pr context"
+    echo -e "  ${GREEN}ss land${NC}                   Open current planet in editor (from planet folder)"
+    echo -e "  ${GREEN}ss reset${NC}                  Reset current planet to latest main (from planet folder)"
     echo -e "  ${GREEN}ss [a|b|c|d|earth]${NC}        Open planet in editor"
-    echo -e "  ${GREEN}ss reset [a|b|c|d|earth]${NC}  Reset planet to latest main"
     echo -e "  ${GREEN}ss config${NC}                 Show current configuration"
     echo -e "  ${GREEN}ss help${NC}                   Show this help message"
 else

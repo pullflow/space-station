@@ -22,8 +22,9 @@ alias symlink="ss symlink"
 alias issues="ss issues"
 alias sync="ss sync"
 alias prs="ss prs"
-alias reset="ss reset"
 alias agent="ss agent"
+alias land="ss land"
+alias reset="ss reset"
 
 # Planet aliases
 alias a="ss a"
