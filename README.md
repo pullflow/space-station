@@ -20,15 +20,17 @@ universe/
 
 1. Clone this repo or copy `ss` to your desired location
 2. Make it executable: `chmod +x ss`
-3. Create `ss.conf` in the same directory:
+3. Run init to create config files from examples:
 
 ```bash
-REPO="owner/repo-name"
-UNIVERSE_DIR="~/myproject/universe"
-EDITOR="cursor"  # optional, defaults to cursor
+./ss init
 ```
 
-4. Run init to set up your environment:
+4. Edit the generated config files:
+   - `ss.conf` - Set your `REPO` and `UNIVERSE_DIR`
+   - `planet-init.sh` - Customize for your project's setup (install deps, build, etc.)
+
+5. Run init again to complete setup:
 
 ```bash
 ./ss init
@@ -123,9 +125,28 @@ The `ss setup` command will check for these dependencies and help you install th
 
 - **git** - `brew install git`
 - **gh** (GitHub CLI) - `brew install gh && gh auth login`
-- **pnpm** - `brew install pnpm`
 - **jq** - `brew install jq`
 - An editor (defaults to [Cursor](https://cursor.sh/))
+
+## Custom Project Setup
+
+Create `planet-init.sh` to define how planets are initialized (runs after checkout/setup):
+
+```bash
+cp planet-init.sh.example planet-init.sh
+# Edit planet-init.sh for your project
+```
+
+Example for Node.js/pnpm:
+```bash
+pnpm install
+pnpm build
+```
+
+Example for Python:
+```bash
+pip install -r requirements.txt
+```
 
 ## Aliases
 

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Planet initialization script
+# Copy this to planet-init.sh and customize for your project
+#
+# This script runs:
+# - After checking out a PR (ss pr <number> <planet>)
+# - During setup for each planet (ss setup)
+#
+# The script runs from within each planet directory.
+
+# Example for pnpm/Node.js projects:
+pnpm install
+pnpm build
+
+# Example for npm projects:
+# npm install
+# npm run build
+
+# Example for yarn projects:
+# yarn install
+# yarn build
+
+# Example for Python projects:
+# pip install -r requirements.txt
+
+# Example for Go projects:
+# go mod download
+# go build ./...
+
+# Example for Rust projects:
+# cargo build
+

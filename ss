@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # 🛸 Space Station - Manage multiple parallel repo clones
-# https://github.com/AshDevFr/space-station
 
 # Get the directory where this script lives
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/ss.conf"
+INIT_SCRIPT="$SCRIPT_DIR/planet-init.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -19,41 +19,44 @@ NC='\033[0m' # No Color
 echo -e "${CYAN}🛸 Space Station${NC}"
 echo ""
 
-# Load configuration
-if [ -f "$CONFIG_FILE" ]; then
-    source "$CONFIG_FILE"
+# Allow init to run without config (to help create config)
+if [ "$1" = "init" ]; then
+    # Init will handle config creation
+    :
 else
-    echo -e "${RED}❌ Configuration file not found: ${CONFIG_FILE}${NC}"
-    echo ""
-    echo -e "${YELLOW}Create ss.conf with:${NC}"
-    echo -e "  REPO=\"owner/repo-name\""
-    echo -e "  UNIVERSE_DIR=\"~/myproject/universe\""
-    echo -e "  EDITOR=\"cursor\"  # optional, defaults to cursor"
-    exit 1
+    # Load configuration
+    if [ -f "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+    else
+        echo -e "${RED}❌ Configuration file not found: ${CONFIG_FILE}${NC}"
+        echo ""
+        echo -e "${YELLOW}Run ${GREEN}ss init${YELLOW} to set up your configuration${NC}"
+        exit 1
+    fi
+
+    # Validate required config
+    if [ -z "$REPO" ]; then
+        echo -e "${RED}❌ REPO not set in ${CONFIG_FILE}${NC}"
+        exit 1
+    fi
+
+    if [ -z "$UNIVERSE_DIR" ]; then
+        echo -e "${RED}❌ UNIVERSE_DIR not set in ${CONFIG_FILE}${NC}"
+        exit 1
+    fi
+
+    # Set defaults
+    EDITOR="${EDITOR:-cursor}"
+
+    # Expand ~ in UNIVERSE_DIR
+    UNIVERSE_DIR="${UNIVERSE_DIR/#\~/$HOME}"
+
+    # Change to the universe directory
+    if [ ! -d "$UNIVERSE_DIR" ]; then
+        mkdir -p "$UNIVERSE_DIR"
+    fi
+    cd "$UNIVERSE_DIR"
 fi
-
-# Validate required config
-if [ -z "$REPO" ]; then
-    echo -e "${RED}❌ REPO not set in ${CONFIG_FILE}${NC}"
-    exit 1
-fi
-
-if [ -z "$UNIVERSE_DIR" ]; then
-    echo -e "${RED}❌ UNIVERSE_DIR not set in ${CONFIG_FILE}${NC}"
-    exit 1
-fi
-
-# Set defaults
-EDITOR="${EDITOR:-cursor}"
-
-# Expand ~ in UNIVERSE_DIR
-UNIVERSE_DIR="${UNIVERSE_DIR/#\~/$HOME}"
-
-# Change to the universe directory
-if [ ! -d "$UNIVERSE_DIR" ]; then
-    mkdir -p "$UNIVERSE_DIR"
-fi
-cd "$UNIVERSE_DIR"
 
 # Function to show status for all planets
 show_status() {
@@ -308,24 +311,15 @@ checkout_pr() {
         echo -e "${GREEN}Successfully merged main into branch${NC}"
     fi
 
-    # Run pnpm install
-    echo -e "${BLUE}Running pnpm install...${NC}"
-    pnpm install
-
-    if [ $? -ne 0 ]; then
-        echo -e "${YELLOW}Warning: pnpm install failed, but continuing...${NC}"
-    else
-        echo -e "${GREEN}Dependencies installed successfully${NC}"
-    fi
-
-    # Run pnpm build
-    echo -e "${BLUE}Running pnpm build...${NC}"
-    pnpm build
-
-    if [ $? -ne 0 ]; then
-        echo -e "${YELLOW}Warning: pnpm build failed, but continuing...${NC}"
-    else
-        echo -e "${GREEN}Build completed successfully${NC}"
+    # Run planet init script if it exists
+    if [ -f "$SCRIPT_DIR/planet-init.sh" ]; then
+        echo -e "🔧 ${BLUE}Running planet-init.sh...${NC}"
+        bash "$SCRIPT_DIR/planet-init.sh"
+        if [ $? -ne 0 ]; then
+            echo -e "${YELLOW}Warning: planet-init.sh had errors, but continuing...${NC}"
+        else
+            echo -e "${GREEN}Planet initialized successfully${NC}"
+        fi
     fi
 
     # Fetch PR description and save to a file
@@ -427,7 +421,56 @@ init_planets() {
     echo -e "🛸 ${BLUE}Initializing Space Station environment...${NC}"
     echo ""
 
-    # 1. Add cl alias to ~/.zshrc
+    # 1. Check/create ss.conf from example
+    echo -e "${BLUE}Checking configuration files...${NC}"
+    if [ -f "$CONFIG_FILE" ]; then
+        echo -e "${GREEN}✓ ss.conf exists${NC}"
+        source "$CONFIG_FILE"
+    else
+        if [ -f "$SCRIPT_DIR/ss.conf.example" ]; then
+            echo -e "${YELLOW}📋 Creating ss.conf from example...${NC}"
+            cp "$SCRIPT_DIR/ss.conf.example" "$CONFIG_FILE"
+            echo -e "${GREEN}✓ Created ss.conf${NC}"
+            echo -e "${YELLOW}⚠ Please edit ss.conf with your REPO and UNIVERSE_DIR${NC}"
+            echo -e "    ${CYAN}$CONFIG_FILE${NC}"
+        else
+            echo -e "${RED}❌ ss.conf.example not found${NC}"
+        fi
+    fi
+
+    # 2. Check/create planet-init.sh from example
+    if [ -f "$INIT_SCRIPT" ]; then
+        echo -e "${GREEN}✓ planet-init.sh exists${NC}"
+    else
+        if [ -f "$SCRIPT_DIR/planet-init.sh.example" ]; then
+            echo -e "${YELLOW}📋 Creating planet-init.sh from example...${NC}"
+            cp "$SCRIPT_DIR/planet-init.sh.example" "$INIT_SCRIPT"
+            chmod +x "$INIT_SCRIPT"
+            echo -e "${GREEN}✓ Created planet-init.sh${NC}"
+            echo -e "${YELLOW}⚠ Please edit planet-init.sh for your project's setup commands${NC}"
+            echo -e "    ${CYAN}$INIT_SCRIPT${NC}"
+        else
+            echo -e "${YELLOW}⚠ planet-init.sh.example not found (optional)${NC}"
+        fi
+    fi
+
+    echo ""
+
+    # If config doesn't have required values, stop here
+    if [ -z "$REPO" ] || [ -z "$UNIVERSE_DIR" ]; then
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${YELLOW}Next steps:${NC}"
+        echo -e "  1. Edit ${CYAN}ss.conf${NC} with your repo and directory"
+        echo -e "  2. Edit ${CYAN}planet-init.sh${NC} for your project setup"
+        echo -e "  3. Run ${GREEN}ss init${NC} again"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        return 0
+    fi
+
+    # Expand ~ in UNIVERSE_DIR
+    UNIVERSE_DIR="${UNIVERSE_DIR/#\~/$HOME}"
+
+    # 3. Add cl alias to ~/.zshrc
     local cl_alias='alias cl="claude --dangerously-skip-permissions"'
     if grep -q 'alias cl=' "$zshrc" 2>/dev/null; then
         echo -e "${GREEN}✓ cl alias already exists in ~/.zshrc${NC}"
@@ -440,7 +483,7 @@ init_planets() {
         changes_made=true
     fi
 
-    # 2. Add UNIVERSE_DIR to PATH in ~/.zshrc
+    # 4. Add UNIVERSE_DIR to PATH in ~/.zshrc
     if grep -q "PATH=.*${UNIVERSE_DIR}" "$zshrc" 2>/dev/null; then
         echo -e "${GREEN}✓ Universe directory already in PATH in ~/.zshrc${NC}"
     else
@@ -454,7 +497,7 @@ init_planets() {
 
     echo ""
 
-    # 3. Create shared directory and prompt about env files
+    # 5. Create shared directory and prompt about env files
     local shared_dir="$UNIVERSE_DIR/shared"
     mkdir -p "$shared_dir"
 
@@ -494,7 +537,7 @@ init_planets() {
 
     echo ""
 
-    # 4. Remind user to source if changes were made
+    # 6. Remind user to source if changes were made
     if [ "$changes_made" = true ]; then
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${YELLOW}Run this to apply changes:${NC}"
@@ -520,12 +563,6 @@ check_deps() {
     if ! command -v gh &> /dev/null; then
         missing_deps+=("gh (GitHub CLI)")
         install_cmds+=("  brew install gh && gh auth login")
-    fi
-
-    # Check for pnpm
-    if ! command -v pnpm &> /dev/null; then
-        missing_deps+=("pnpm")
-        install_cmds+=("  brew install pnpm")
     fi
 
     # Check for jq
@@ -699,13 +736,15 @@ setup_planets() {
             git pull origin main
         fi
 
-        # Run pnpm install
-        echo -e "${BLUE}  Running pnpm install...${NC}"
-        pnpm install
-        if [ $? -ne 0 ]; then
-            echo -e "${YELLOW}  Warning: pnpm install failed${NC}"
-        else
-            echo -e "${GREEN}  Dependencies installed${NC}"
+        # Run planet init script if it exists
+        if [ -f "$SCRIPT_DIR/planet-init.sh" ]; then
+            echo -e "🔧 ${BLUE}  Running planet-init.sh...${NC}"
+            bash "$SCRIPT_DIR/planet-init.sh"
+            if [ $? -ne 0 ]; then
+                echo -e "${YELLOW}  Warning: planet-init.sh had errors${NC}"
+            else
+                echo -e "${GREEN}  Planet initialized${NC}"
+            fi
         fi
 
         # If .env was just cloned and shared .env doesn't exist, copy it
