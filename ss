@@ -788,7 +788,19 @@ setup_planets() {
 if [ $# -eq 0 ] || [ "$1" = "launch" ]; then
     # No arguments or "launch": launch subshell
     # Launch a subshell with space station prompt
-    echo -e "${CYAN}🛸 Space Station${NC}"
+
+    # Detect if we're in a planet folder
+    current_dir=$(basename "$(pwd)")
+    prompt_prefix="🛸"
+    if [[ "$current_dir" =~ ^planet- ]]; then
+        if [ "$current_dir" = "planet-earth" ]; then
+            prompt_prefix="🌎"
+        else
+            prompt_prefix="🪐 ${current_dir}"
+        fi
+    fi
+
+    echo -e "${CYAN}${prompt_prefix} Space Station${NC}"
     echo ""
     echo -e "🚀 ${BLUE}Launching shell...${NC}"
     echo -e "${YELLOW}Type 'exit' to return to normal shell${NC}"
@@ -834,16 +846,14 @@ ZSHRC_EOF
     if command -v starship &> /dev/null; then
         # Starship is installed - create custom config that prepends emoji
         ss_starship_config="$SPACESTATION_DIR/.starship-ss.toml"
-        if [ ! -f "$ss_starship_config" ]; then
-            cat > "$ss_starship_config" << 'STARSHIP_EOF'
-# Space Station starship config - prepends 🛸 to your prompt
-format = "🛸 $all"
+        cat > "$ss_starship_config" << STARSHIP_EOF
+# Space Station starship config - prepends emoji to your prompt
+format = "${prompt_prefix} \$all"
 STARSHIP_EOF
-        fi
         ZDOTDIR="$SPACESTATION_DIR" STARSHIP_CONFIG="$ss_starship_config" zsh -i
     else
         # No starship - just set PROMPT directly
-        ZDOTDIR="$SPACESTATION_DIR" PROMPT="🛸 %~ %# " zsh -i
+        ZDOTDIR="$SPACESTATION_DIR" PROMPT="${prompt_prefix} %~ %# " zsh -i
     fi
 elif [ "$1" = "list" ] || [ "$1" = "status" ]; then
     # Show status of all planets
@@ -872,6 +882,34 @@ elif [ "$1" = "prs" ]; then
             exit 1
         fi
         checkout_pr "$pr_number" "$space"
+    fi
+elif [ "$1" = "agent" ]; then
+    # Agent command - must be run from a planet folder
+    current_dir=$(basename "$(pwd)")
+    if [[ ! "$current_dir" =~ ^planet- ]]; then
+        echo -e "${RED}Error: agent must be run from a planet folder${NC}"
+        exit 1
+    fi
+
+    agent_args=""
+    if [ $# -ge 3 ]; then
+        item_type=$2
+        item_number=$3
+        if [[ "$item_type" =~ ^(issue|pr)$ ]]; then
+            agent_args="we will work on gh ${item_type} ${item_number}"
+        else
+            echo -e "${RED}Error: Invalid type '${item_type}'. Use: issue or pr${NC}"
+            exit 1
+        fi
+    fi
+
+    # Run agent
+    if [ -n "$agent_args" ]; then
+        echo -e "🤖 ${BLUE}Running agent...${NC}"
+        agent "$agent_args"
+    else
+        echo -e "🤖 ${BLUE}Running agent...${NC}"
+        agent
     fi
 elif [ "$1" = "reset" ] || [ "$1" = "-r" ]; then
     # Reset command
@@ -903,6 +941,8 @@ elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo -e "  ${GREEN}ss sync${NC}                   Sync GitHub issues to todo.md"
     echo -e "  ${GREEN}ss prs${NC}                    List open PRs (authored by you or awaiting review)"
     echo -e "  ${GREEN}ss prs <number> [planet]${NC}  Checkout PR in a planet (default: earth)"
+    echo -e "  ${GREEN}ss agent [issue|pr <number>]${NC}"
+    echo -e "                              Run agent, optionally with issue/pr context"
     echo -e "  ${GREEN}ss [a|b|c|d|earth]${NC}        Open planet in editor"
     echo -e "  ${GREEN}ss reset [a|b|c|d|earth]${NC}  Reset planet to latest main"
     echo -e "  ${GREEN}ss config${NC}                 Show current configuration"
