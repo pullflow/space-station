@@ -48,21 +48,21 @@ space-station/
 # 3. Clone repos and link env files
 ./ss setup
 
-# 4. Launch the Space Station shell
-./ss launch
+# 4. Launch the Space Station shell (this is the default command)
+./ss
 
-# 5. Check status of all planets
-ss
+# 5. Inside the shell, check status of all planets
+list
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `ss` | Show status of all planets (branch, changes, PR info) |
+| `ss` | Launch Space Station shell (default) |
+| `ss list` | Show status of all planets (branch, changes, PR info) |
 | `ss init` | Initialize environment (create config files) |
 | `ss setup` | Clone all planets, install deps, symlink shared files |
-| `ss launch` | Launch a Space Station shell with 🛸 prompt |
 | `ss symlink` | Symlink all files from ./shared to all planets |
 | `ss [a\|b\|c\|d\|earth]` | Open a planet in your editor |
 | `ss pr` | List open PRs (authored by you or awaiting review) |
@@ -73,7 +73,7 @@ ss
 
 ## Status Output
 
-When you run `ss` with no arguments, you'll see:
+When you run `list` (or `ss list`), you'll see:
 
 ```
 🛸 Space Station
@@ -114,7 +114,7 @@ ss pr 789 b              # Checkout PR #789 in planet-b
 ss b                     # Open planet-b in editor
 
 # Check status of everything
-ss                       # See all planets at a glance
+list                     # See all planets at a glance
 
 # Done with a PR? Reset the planet
 ss reset a               # Reset planet-a to main
@@ -151,18 +151,22 @@ pip install -r requirements.txt
 
 ## Space Station Shell
 
-Run `ss launch` to start a subshell with:
+Running `ss` (or `ss launch`) starts a subshell with:
 
 - 🛸 emoji in your prompt (works with Starship)
-- `ss` command available
+- All `ss` subcommands available as shortcuts (`list`, `setup`, `pr`, `a`, `b`, etc.)
+- `agent` alias for Claude CLI
 - Custom aliases from `launch.sh`
 
 Edit `launch.sh` to add your own shortcuts:
 
 ```bash
-# launch.sh
-alias agent="claude"        # default
-alias dev="pnpm dev"        # add your own
+# launch.sh (defaults included)
+alias agent="claude"
+alias list="ss list"
+alias a="ss a"
+# add your own...
+alias dev="pnpm dev"
 ```
 
 ## Recommended Terminal Layout
@@ -171,7 +175,7 @@ Use your terminal's split view to create a 2x2 grid for maximum productivity:
 
 ```
 ┌─────────────────┬─────────────────┐
-│  ss launch      │  planet-a       │
+│  ss             │  planet-a       │
 │  (command hub)  │  (feature work) │
 ├─────────────────┼─────────────────┤
 │  planet-earth   │  planet-b       │
@@ -179,7 +183,7 @@ Use your terminal's split view to create a 2x2 grid for maximum productivity:
 └─────────────────┴─────────────────┘
 ```
 
-- **Top-left**: `ss launch` - your command hub for status checks and navigation
+- **Top-left**: `ss` - your command hub for status checks and navigation
 - **Bottom-left**: `planet-earth` - always on main for quick reference
 - **Top-right**: `planet-a` - active feature development
 - **Bottom-right**: `planet-b` - PR review or second task
