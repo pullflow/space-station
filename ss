@@ -783,8 +783,66 @@ setup_planets() {
 }
 
 # Main script logic
-if [ $# -eq 0 ]; then
-    # No arguments: show status
+if [ $# -eq 0 ] || [ "$1" = "launch" ]; then
+    # No arguments or "launch": launch subshell
+    # Launch a subshell with space station prompt
+    echo -e "🚀 ${BLUE}Launching Space Station shell...${NC}"
+    echo -e "${YELLOW}Type 'exit' to return to normal shell${NC}"
+    echo ""
+
+    # Build the init command to source launch.sh if it exists
+    launch_file="$SPACESTATION_DIR/launch.sh"
+    init_cmd=""
+    if [ -f "$launch_file" ]; then
+        init_cmd="source '$launch_file'"
+
+        # Show shortcuts (aliases from launch.sh + ss)
+        echo -e "${BLUE}Shortcuts:${NC}"
+        echo -e "  ${GREEN}ss${NC} - Space Station CLI"
+        # Parse aliases from launch.sh and display them
+        grep -E '^alias ' "$launch_file" 2>/dev/null | while read -r line; do
+            alias_name=$(echo "$line" | sed -E 's/^alias ([^=]+)=.*/\1/')
+            alias_value=$(echo "$line" | sed -E 's/^alias [^=]+=["'"'"']?([^"'"'"']*)["'"'"']?/\1/')
+            echo -e "  ${GREEN}${alias_name}${NC} - ${alias_value}"
+        done
+        echo ""
+    fi
+
+    # Always alias ss to the script
+    ss_alias="alias ss='$SPACESTATION_DIR/ss'"
+    if [ -n "$init_cmd" ]; then
+        init_cmd="$init_cmd; $ss_alias"
+    else
+        init_cmd="$ss_alias"
+    fi
+
+    # Create a .zshrc that sources the user's zshrc then our launch.sh
+    ss_zshrc="$SPACESTATION_DIR/.zshrc"
+    cat > "$ss_zshrc" << ZSHRC_EOF
+# Source user's zshrc first
+[ -f "\$HOME/.zshrc" ] && source "\$HOME/.zshrc"
+
+# Space Station aliases
+$ss_alias
+[ -f "$launch_file" ] && source "$launch_file"
+ZSHRC_EOF
+
+    if command -v starship &> /dev/null; then
+        # Starship is installed - create custom config that prepends emoji
+        ss_starship_config="$SPACESTATION_DIR/.starship-ss.toml"
+        if [ ! -f "$ss_starship_config" ]; then
+            cat > "$ss_starship_config" << 'STARSHIP_EOF'
+# Space Station starship config - prepends 🛸 to your prompt
+format = "🛸 $all"
+STARSHIP_EOF
+        fi
+        ZDOTDIR="$SPACESTATION_DIR" STARSHIP_CONFIG="$ss_starship_config" zsh -i
+    else
+        # No starship - just set PROMPT directly
+        ZDOTDIR="$SPACESTATION_DIR" PROMPT="🛸 %~ %# " zsh -i
+    fi
+elif [ "$1" = "list" ] || [ "$1" = "status" ]; then
+    # Show status of all planets
     show_status
 elif [ "$1" = "init" ]; then
     init_planets
@@ -818,64 +876,18 @@ elif [ "$1" = "reset" ] || [ "$1" = "-r" ]; then
         exit 1
     fi
     reset_planet "$2"
-elif [ "$1" = "launch" ]; then
-    # Launch a subshell with space station prompt
-    echo -e "🚀 ${BLUE}Launching Space Station shell...${NC}"
-    echo -e "${YELLOW}Type 'exit' to return to normal shell${NC}"
-    echo ""
-
-    # Build the init command to source launch.sh if it exists
-    launch_file="$SPACESTATION_DIR/launch.sh"
-    init_cmd=""
-    if [ -f "$launch_file" ]; then
-        init_cmd="source '$launch_file'"
-
-        # Show shortcuts (aliases from launch.sh + ss)
-        echo -e "${BLUE}Shortcuts:${NC}"
-        echo -e "  ${GREEN}ss${NC} - Space Station CLI"
-        # Parse aliases from launch.sh and display them
-        grep -E '^alias ' "$launch_file" 2>/dev/null | while read -r line; do
-            alias_name=$(echo "$line" | sed -E 's/^alias ([^=]+)=.*/\1/')
-            alias_value=$(echo "$line" | sed -E 's/^alias [^=]+=["'"'"']?([^"'"'"']*)["'"'"']?/\1/')
-            echo -e "  ${GREEN}${alias_name}${NC} - ${alias_value}"
-        done
-        echo ""
-    fi
-
-    # Always alias ss to the script
-    ss_alias="alias ss='$SPACESTATION_DIR/ss'"
-    if [ -n "$init_cmd" ]; then
-        init_cmd="$init_cmd; $ss_alias"
-    else
-        init_cmd="$ss_alias"
-    fi
-
-    if command -v starship &> /dev/null; then
-        # Starship is installed - create custom config that prepends emoji
-        ss_starship_config="$SPACESTATION_DIR/.starship-ss.toml"
-        if [ ! -f "$ss_starship_config" ]; then
-            cat > "$ss_starship_config" << 'STARSHIP_EOF'
-# Space Station starship config - prepends 🛸 to your prompt
-format = "🛸 $all"
-STARSHIP_EOF
-        fi
-        STARSHIP_CONFIG="$ss_starship_config" zsh -c "$init_cmd; exec zsh -i"
-    else
-        # No starship - just set PROMPT directly
-        PROMPT="🛸 %~ %# " zsh -c "$init_cmd; exec zsh -i"
-    fi
 else
     # Open planet in editor
     if [[ "$1" =~ ^(a|b|c|d|earth)$ ]]; then
         open_planet "$1"
     else
-        echo -e "${RED}Error: Invalid planet name. Use: a, b, c, d, or earth${NC}"
+        echo -e "${RED}Error: Unknown command '$1'${NC}"
         echo -e "${YELLOW}Usage:${NC}"
-        echo -e "  $0                    - Show status of all planets"
-        echo -e "  $0 init               - Initialize environment (add alias, PATH, check env files)"
-        echo -e "  $0 setup              - Setup/create all planets, install deps, link envs"
+        echo -e "  $0                    - Launch Space Station shell (default)"
+        echo -e "  $0 list               - Show status of all planets"
+        echo -e "  $0 init               - Initialize environment (create config files)"
+        echo -e "  $0 setup              - Setup/create all planets, install deps, link shared files"
         echo -e "  $0 symlink            - Symlink all files from ./shared to all planets"
-        echo -e "  $0 launch             - Launch a subshell with 🛸 prompt"
         echo -e "  $0 issues             - Show open issues assigned to you"
         echo -e "  $0 sync               - Sync GitHub issues to todo.md"
         echo -e "  $0 pr [number] [planet] - List PRs or checkout PR in planet (default: earth)"
