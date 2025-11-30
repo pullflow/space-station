@@ -1,0 +1,7 @@
+# Ignore everything by default
+*
+
+# Track these files
+!.gitignore
+!ss
+!README.md
