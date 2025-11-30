@@ -414,8 +414,6 @@ reset_planet() {
 
 # Function to initialize user environment
 init_planets() {
-    local zshrc="$HOME/.zshrc"
-    local changes_made=false
     local env_local_files=(".env.local" ".env.preflight.local" ".env.production.local")
 
     echo -e "🛸 ${BLUE}Initializing Space Station environment...${NC}"
@@ -478,34 +476,7 @@ init_planets() {
     # Expand ~ in SPACESTATION_DIR
     SPACESTATION_DIR="${SPACESTATION_DIR/#\~/$HOME}"
 
-    # 3. Add cl alias to ~/.zshrc
-    local cl_alias='alias cl="claude --dangerously-skip-permissions"'
-    if grep -q 'alias cl=' "$zshrc" 2>/dev/null; then
-        echo -e "${GREEN}✓ cl alias already exists in ~/.zshrc${NC}"
-    else
-        echo -e "${BLUE}Adding cl alias to ~/.zshrc...${NC}"
-        echo "" >> "$zshrc"
-        echo "# Claude CLI alias (added by ss init)" >> "$zshrc"
-        echo "$cl_alias" >> "$zshrc"
-        echo -e "${GREEN}✓ Added: ${cl_alias}${NC}"
-        changes_made=true
-    fi
-
-    # 4. Add SPACESTATION_DIR to PATH in ~/.zshrc
-    if grep -q "PATH=.*${SPACESTATION_DIR}" "$zshrc" 2>/dev/null; then
-        echo -e "${GREEN}✓ Universe directory already in PATH in ~/.zshrc${NC}"
-    else
-        echo -e "${BLUE}Adding universe directory to PATH in ~/.zshrc...${NC}"
-        echo "" >> "$zshrc"
-        echo "# Universe directory (added by ss init)" >> "$zshrc"
-        echo "export PATH=\"\$PATH:${SPACESTATION_DIR}\"" >> "$zshrc"
-        echo -e "${GREEN}✓ Added ${SPACESTATION_DIR} to PATH${NC}"
-        changes_made=true
-    fi
-
-    echo ""
-
-    # 5. Create shared directory and prompt about env files
+    # 3. Create shared directory and prompt about env files
     local shared_dir="$SPACESTATION_DIR/shared"
     mkdir -p "$shared_dir"
 
@@ -544,16 +515,9 @@ init_planets() {
     fi
 
     echo ""
-
-    # 6. Remind user to source if changes were made
-    if [ "$changes_made" = true ]; then
-        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${YELLOW}Run this to apply changes:${NC}"
-        echo -e "    ${GREEN}source ~/.zshrc${NC}"
-        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    fi
-
     echo -e "✅ ${GREEN}Init complete!${NC}"
+    echo ""
+    echo -e "${BLUE}Run ${GREEN}ss launch${BLUE} to start a Space Station shell${NC}"
 }
 
 # Function to check dependencies
@@ -604,15 +568,95 @@ check_deps() {
     return 0
 }
 
+# Function to symlink all files from shared/ to all planets
+symlink_shared() {
+    local spaces=("a" "b" "c" "d" "earth")
+    local shared_dir="$SPACESTATION_DIR/shared"
+
+    echo -e "🔗 ${BLUE}Symlinking shared files to all planets...${NC}"
+    echo ""
+
+    # Check if shared directory exists
+    if [ ! -d "$shared_dir" ]; then
+        echo -e "${RED}Error: shared directory does not exist at ${shared_dir}${NC}"
+        echo -e "${YELLOW}Run ${GREEN}ss init${NC} first to create it.${NC}"
+        return 1
+    fi
+
+    # Get list of files in shared directory (excluding subdirectories for now)
+    local shared_files=()
+    for f in "$shared_dir"/*; do
+        if [ -f "$f" ]; then
+            shared_files+=("$(basename "$f")")
+        fi
+    done
+
+    if [ ${#shared_files[@]} -eq 0 ]; then
+        echo -e "${YELLOW}No files found in ${shared_dir}${NC}"
+        return 0
+    fi
+
+    echo -e "${BLUE}Files to symlink:${NC}"
+    for f in "${shared_files[@]}"; do
+        echo -e "    ${CYAN}$f${NC}"
+    done
+    echo ""
+
+    # Symlink to each planet
+    for space in "${spaces[@]}"; do
+        local space_dir="$SPACESTATION_DIR/planet-${space}"
+
+        if [ ! -d "$space_dir" ]; then
+            echo -e "${YELLOW}Skipping planet-${space} (directory doesn't exist)${NC}"
+            continue
+        fi
+
+        echo -e "🪐 ${BLUE}Symlinking to planet-${space}...${NC}"
+
+        for file in "${shared_files[@]}"; do
+            local target_file="$space_dir/$file"
+            local expected_link="../shared/$file"
+
+            if [ -f "$target_file" ] && [ ! -L "$target_file" ]; then
+                # Backup existing file if it's different from shared
+                if ! cmp -s "$target_file" "$shared_dir/$file" 2>/dev/null; then
+                    echo -e "${YELLOW}  Backing up existing ${file} to ${file}.backup...${NC}"
+                    cp "$target_file" "${target_file}.backup"
+                fi
+                rm "$target_file"
+            fi
+
+            if [ ! -L "$target_file" ]; then
+                ln -sf "$expected_link" "$target_file"
+                if [ $? -eq 0 ]; then
+                    echo -e "${GREEN}  ✓ ${file}${NC}"
+                else
+                    echo -e "${RED}  ✗ Failed to link ${file}${NC}"
+                fi
+            else
+                # Verify the symlink points to the right place
+                local link_target=$(readlink "$target_file")
+                if [ "$link_target" != "$expected_link" ]; then
+                    echo -e "${YELLOW}  Updating ${file} symlink...${NC}"
+                    rm "$target_file"
+                    ln -sf "$expected_link" "$target_file"
+                    echo -e "${GREEN}  ✓ ${file}${NC}"
+                else
+                    echo -e "${GREEN}  ✓ ${file} (already linked)${NC}"
+                fi
+            fi
+        done
+        echo ""
+    done
+
+    echo -e "${GREEN}Symlink complete!${NC}"
+}
+
 # Function to setup all planets
 setup_planets() {
     local spaces=("a" "b" "c" "d" "earth")
     local repo_url="https://github.com/${REPO}.git"
-    local shared_env_dir="$SPACESTATION_DIR/shared/env"
     local shared_dir="$SPACESTATION_DIR/shared"
-    # List of env files to manage (in order of priority for copying)
-    local env_files=(".env" ".env.local" ".env.preflight.local" ".env.production.local")
-    local env_local_files=(".env.local" ".env.preflight.local" ".env.production.local")
 
     # Check dependencies first
     echo -e "🔍 ${BLUE}Checking dependencies...${NC}"
@@ -621,79 +665,52 @@ setup_planets() {
     fi
     echo ""
 
-    # Check that required .env*.local files exist in shared
-    local missing_env_files=()
-    for env_file in "${env_local_files[@]}"; do
-        if [ ! -f "$shared_dir/$env_file" ]; then
-            missing_env_files+=("$env_file")
-        fi
-    done
-
-    if [ ${#missing_env_files[@]} -gt 0 ]; then
-        echo -e "${RED}Error: Missing required env files in ./shared:${NC}"
-        for f in "${missing_env_files[@]}"; do
-            echo -e "    ${RED}$f${NC}"
-        done
-        echo ""
-        echo -e "${YELLOW}Please add your env files to:${NC}"
-        echo -e "    ${YELLOW}${shared_dir}/${NC}"
-        echo ""
-        echo -e "Run ${GREEN}ss init${NC} to check your setup."
-        return 1
-    fi
-
-    echo -e "🌌 ${BLUE}Setting up planets...${NC}"
-    echo ""
-
-    # Create shared/env directory
-    echo -e "${BLUE}Creating shared env directory...${NC}"
-    mkdir -p "$shared_env_dir"
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Error: Failed to create shared env directory${NC}"
-        return 1
-    fi
-
-    # Create shared directory (for .env.local etc.)
+    # Create shared directory if it doesn't exist
     mkdir -p "$shared_dir"
 
-    # Create shared env files if they don't exist
-    for env_file in "${env_files[@]}"; do
-        local shared_env_file=""
-        if [ "$env_file" = ".env" ]; then
-            shared_env_file="$shared_env_dir/$env_file"
-        else
-            shared_env_file="$shared_dir/$env_file"
-        fi
+    # Explain shared symlink mechanism and get confirmation
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}📁 Shared Files Setup${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "Any files you place in ${CYAN}./shared/${NC} will be symlinked to all planets."
+    echo -e "This is useful for env files like ${CYAN}.env.local${NC}, ${CYAN}.env.production.local${NC}, etc."
+    echo ""
+    echo -e "How it works:"
+    echo -e "  1. Put your env files in ${CYAN}${shared_dir}/${NC}"
+    echo -e "  2. Each planet gets a symlink: ${CYAN}planet-a/.env.local${NC} -> ${CYAN}../shared/.env.local${NC}"
+    echo -e "  3. All planets share the same files (edit once, applies everywhere)"
+    echo ""
 
-        if [ ! -f "$shared_env_file" ]; then
-            # Try to copy from first existing space's env file
-            local found_env=""
-            for space in "${spaces[@]}"; do
-                local space_dir="planet-${space}"
-                if [ -f "$space_dir/$env_file" ] && [ ! -L "$space_dir/$env_file" ]; then
-                    found_env="$space_dir/$env_file"
-                    break
-                fi
-            done
-
-            if [ -n "$found_env" ]; then
-                echo -e "${BLUE}Copying ${env_file} from existing planet to shared location...${NC}"
-                cp "$found_env" "$shared_env_file"
-            else
-                # For .env, check if repo has it tracked in git
-                if [ "$env_file" = ".env" ]; then
-                    # After cloning, we'll copy from the repo
-                    echo -e "${BLUE}Will create shared ${env_file} after cloning...${NC}"
-                else
-                    echo -e "${BLUE}Creating empty shared ${env_file} file...${NC}"
-                    touch "$shared_env_file"
-                fi
-            fi
-        else
-            echo -e "${GREEN}Shared ${env_file} already exists${NC}"
+    # Show current files in shared
+    local shared_files=()
+    for f in "$shared_dir"/*; do
+        if [ -f "$f" ]; then
+            shared_files+=("$(basename "$f")")
         fi
     done
 
+    if [ ${#shared_files[@]} -gt 0 ]; then
+        echo -e "${GREEN}Files currently in ./shared:${NC}"
+        for f in "${shared_files[@]}"; do
+            echo -e "    ${CYAN}$f${NC}"
+        done
+    else
+        echo -e "${YELLOW}No files currently in ./shared${NC}"
+        echo -e "${YELLOW}You can add files later and run ${GREEN}ss symlink${YELLOW} to link them.${NC}"
+    fi
+    echo ""
+
+    # Ask for confirmation
+    echo -e "${BLUE}Continue with setup?${NC} (y/n)"
+    read -r confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}Setup cancelled. Add your files to ./shared and run ${GREEN}ss setup${YELLOW} again.${NC}"
+        return 0
+    fi
+    echo ""
+
+    echo -e "🌌 ${BLUE}Setting up planets...${NC}"
     echo ""
 
     # Setup each planet
@@ -755,62 +772,12 @@ setup_planets() {
             fi
         fi
 
-        # If .env was just cloned and shared .env doesn't exist, copy it
-        if [ ! -f "$shared_env_dir/.env" ] && [ -f ".env" ] && [ ! -L ".env" ]; then
-            echo -e "${BLUE}  Copying .env from repo to shared location...${NC}"
-            cp ".env" "$shared_env_dir/.env"
-        fi
-
-        # Link all env files
-        for env_file in "${env_files[@]}"; do
-            local shared_env_file=""
-            local expected_link=""
-            if [ "$env_file" = ".env" ]; then
-                shared_env_file="$shared_env_dir/$env_file"
-                expected_link="../shared/env/$env_file"
-            else
-                shared_env_file="$shared_dir/$env_file"
-                expected_link="../shared/$env_file"
-            fi
-
-            # Ensure shared file exists (create empty if needed)
-            if [ ! -f "$shared_env_file" ]; then
-                touch "$shared_env_file"
-            fi
-
-            if [ -f "$env_file" ] && [ ! -L "$env_file" ]; then
-                # Backup existing env file if it's different from shared
-                if [ -f "$shared_env_file" ] && ! cmp -s "$env_file" "$shared_env_file" 2>/dev/null; then
-                    echo -e "${YELLOW}  Backing up existing ${env_file} to ${env_file}.backup...${NC}"
-                    cp "$env_file" "${env_file}.backup"
-                fi
-                rm "$env_file"
-            fi
-
-            if [ ! -L "$env_file" ]; then
-                echo -e "${BLUE}  Linking ${env_file} to shared location...${NC}"
-                ln -sf "$expected_link" "$env_file"
-                if [ $? -eq 0 ]; then
-                    echo -e "${GREEN}  ${env_file} linked successfully${NC}"
-                else
-                    echo -e "${RED}  Error: Failed to link ${env_file}${NC}"
-                fi
-            else
-                # Verify the symlink points to the right place
-                local link_target=$(readlink "$env_file")
-                if [ "$link_target" != "$expected_link" ]; then
-                    echo -e "${YELLOW}  ${env_file} symlink points elsewhere, updating...${NC}"
-                    rm "$env_file"
-                    ln -sf "$expected_link" "$env_file"
-                else
-                    echo -e "${GREEN}  ${env_file} already linked correctly${NC}"
-                fi
-            fi
-        done
-
         cd "$SPACESTATION_DIR"
         echo ""
     done
+
+    # Symlink all shared files to planets
+    symlink_shared
 
     echo -e "${GREEN}Setup complete!${NC}"
 }
@@ -827,6 +794,8 @@ elif [ "$1" = "issues" ]; then
     show_issues
 elif [ "$1" = "sync" ]; then
     sync_issues
+elif [ "$1" = "symlink" ]; then
+    symlink_shared
 elif [ "$1" = "pr" ]; then
     # PR command
     if [ $# -lt 2 ]; then
@@ -849,6 +818,52 @@ elif [ "$1" = "reset" ] || [ "$1" = "-r" ]; then
         exit 1
     fi
     reset_planet "$2"
+elif [ "$1" = "launch" ]; then
+    # Launch a subshell with space station prompt
+    echo -e "🚀 ${BLUE}Launching Space Station shell...${NC}"
+    echo -e "${YELLOW}Type 'exit' to return to normal shell${NC}"
+    echo ""
+
+    # Build the init command to source launch.sh if it exists
+    launch_file="$SPACESTATION_DIR/launch.sh"
+    init_cmd=""
+    if [ -f "$launch_file" ]; then
+        init_cmd="source '$launch_file'"
+
+        # Show shortcuts (aliases from launch.sh + ss)
+        echo -e "${BLUE}Shortcuts:${NC}"
+        echo -e "  ${GREEN}ss${NC} - Space Station CLI"
+        # Parse aliases from launch.sh and display them
+        grep -E '^alias ' "$launch_file" 2>/dev/null | while read -r line; do
+            alias_name=$(echo "$line" | sed -E 's/^alias ([^=]+)=.*/\1/')
+            alias_value=$(echo "$line" | sed -E 's/^alias [^=]+=["'"'"']?([^"'"'"']*)["'"'"']?/\1/')
+            echo -e "  ${GREEN}${alias_name}${NC} - ${alias_value}"
+        done
+        echo ""
+    fi
+
+    # Always alias ss to the script
+    ss_alias="alias ss='$SPACESTATION_DIR/ss'"
+    if [ -n "$init_cmd" ]; then
+        init_cmd="$init_cmd; $ss_alias"
+    else
+        init_cmd="$ss_alias"
+    fi
+
+    if command -v starship &> /dev/null; then
+        # Starship is installed - create custom config that prepends emoji
+        ss_starship_config="$SPACESTATION_DIR/.starship-ss.toml"
+        if [ ! -f "$ss_starship_config" ]; then
+            cat > "$ss_starship_config" << 'STARSHIP_EOF'
+# Space Station starship config - prepends 🛸 to your prompt
+format = "🛸 $all"
+STARSHIP_EOF
+        fi
+        STARSHIP_CONFIG="$ss_starship_config" zsh -c "$init_cmd; exec zsh -i"
+    else
+        # No starship - just set PROMPT directly
+        PROMPT="🛸 %~ %# " zsh -c "$init_cmd; exec zsh -i"
+    fi
 else
     # Open planet in editor
     if [[ "$1" =~ ^(a|b|c|d|earth)$ ]]; then
@@ -859,6 +874,8 @@ else
         echo -e "  $0                    - Show status of all planets"
         echo -e "  $0 init               - Initialize environment (add alias, PATH, check env files)"
         echo -e "  $0 setup              - Setup/create all planets, install deps, link envs"
+        echo -e "  $0 symlink            - Symlink all files from ./shared to all planets"
+        echo -e "  $0 launch             - Launch a subshell with 🛸 prompt"
         echo -e "  $0 issues             - Show open issues assigned to you"
         echo -e "  $0 sync               - Sync GitHub issues to todo.md"
         echo -e "  $0 pr [number] [planet] - List PRs or checkout PR in planet (default: earth)"
