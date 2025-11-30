@@ -876,23 +876,27 @@ elif [ "$1" = "reset" ] || [ "$1" = "-r" ]; then
         exit 1
     fi
     reset_planet "$2"
+elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo -e "${YELLOW}Usage:${NC}"
+    echo -e "  ${GREEN}ss${NC}                        Launch Space Station shell (default)"
+    echo -e "  ${GREEN}ss list${NC}                   Show status of all planets"
+    echo -e "  ${GREEN}ss init${NC}                   Initialize environment (create config files)"
+    echo -e "  ${GREEN}ss setup${NC}                  Setup/create all planets, install deps, link shared files"
+    echo -e "  ${GREEN}ss symlink${NC}                Symlink all files from ./shared to all planets"
+    echo -e "  ${GREEN}ss issues${NC}                 Show open issues assigned to you"
+    echo -e "  ${GREEN}ss sync${NC}                   Sync GitHub issues to todo.md"
+    echo -e "  ${GREEN}ss pr${NC}                     List open PRs (authored by you or awaiting review)"
+    echo -e "  ${GREEN}ss pr <number> [planet]${NC}   Checkout PR in a planet (default: earth)"
+    echo -e "  ${GREEN}ss [a|b|c|d|earth]${NC}        Open planet in editor"
+    echo -e "  ${GREEN}ss reset [a|b|c|d|earth]${NC}  Reset planet to latest main"
+    echo -e "  ${GREEN}ss help${NC}                   Show this help message"
 else
     # Open planet in editor
     if [[ "$1" =~ ^(a|b|c|d|earth)$ ]]; then
         open_planet "$1"
     else
         echo -e "${RED}Error: Unknown command '$1'${NC}"
-        echo -e "${YELLOW}Usage:${NC}"
-        echo -e "  $0                    - Launch Space Station shell (default)"
-        echo -e "  $0 list               - Show status of all planets"
-        echo -e "  $0 init               - Initialize environment (create config files)"
-        echo -e "  $0 setup              - Setup/create all planets, install deps, link shared files"
-        echo -e "  $0 symlink            - Symlink all files from ./shared to all planets"
-        echo -e "  $0 issues             - Show open issues assigned to you"
-        echo -e "  $0 sync               - Sync GitHub issues to todo.md"
-        echo -e "  $0 pr [number] [planet] - List PRs or checkout PR in planet (default: earth)"
-        echo -e "  $0 [a|b|c|d|earth]    - Open planet in editor"
-        echo -e "  $0 reset|-r [a|b|c|d|earth] - Reset planet to latest main"
+        echo -e "Run ${GREEN}ss help${NC} for usage information"
         exit 1
     fi
 fi

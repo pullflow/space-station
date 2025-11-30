@@ -13,6 +13,7 @@ alias resume="$AGENT --resume"
 alias cont="$AGENT --continue"
 
 # Space Station subcommand aliases
+alias help="ss help"
 alias list="ss list"
 alias init="ss init"
 alias setup="ss setup"
