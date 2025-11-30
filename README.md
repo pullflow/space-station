@@ -39,18 +39,19 @@ space-station/
 ## Quick Start
 
 ```bash
-# 1. Initialize your environment (adds ss to PATH, sets up aliases)
+# 1. Initialize your environment (creates config files)
 ./ss init
 
 # 2. Add your env files to ./shared/
-#    - .env.local
-#    - .env.preflight.local
-#    - .env.production.local
+#    Any files here will be symlinked to all planets
 
 # 3. Clone repos and link env files
-ss setup
+./ss setup
 
-# 4. Check status of all planets
+# 4. Launch the Space Station shell
+./ss launch
+
+# 5. Check status of all planets
 ss
 ```
 
@@ -59,8 +60,10 @@ ss
 | Command | Description |
 |---------|-------------|
 | `ss` | Show status of all planets (branch, changes, PR info) |
-| `ss init` | Initialize environment (PATH, aliases, check env files) |
-| `ss setup` | Clone all planets, install deps, symlink env files |
+| `ss init` | Initialize environment (create config files) |
+| `ss setup` | Clone all planets, install deps, symlink shared files |
+| `ss launch` | Launch a Space Station shell with 🛸 prompt |
+| `ss symlink` | Symlink all files from ./shared to all planets |
 | `ss [a\|b\|c\|d\|earth]` | Open a planet in your editor |
 | `ss pr` | List open PRs (authored by you or awaiting review) |
 | `ss pr <number> [planet]` | Checkout PR in a planet (default: earth) |
@@ -86,20 +89,18 @@ When you run `ss` with no arguments, you'll see:
 - **✓/⧗/✗** - Approved/Pending/Changes Requested reviews
 - **Checks** - CI status (✓ passing, ✗ failing, ⧗ pending)
 
-## Shared Environment Files
+## Shared Files
 
-All planets share the same env files via symlinks:
+All planets share the same files via symlinks. Any file you place in `./shared/` will be symlinked to all planets:
 
 ```
 shared/
 ├── .env.local
-├── .env.preflight.local
 ├── .env.production.local
-└── env/
-    └── .env
+└── any-other-file.json
 ```
 
-Edit once in `shared/`, changes apply to all planets.
+Edit once in `shared/`, changes apply to all planets. Run `ss symlink` anytime to re-link files.
 
 ## Workflow Example
 
@@ -148,12 +149,20 @@ Example for Python:
 pip install -r requirements.txt
 ```
 
-## Aliases
+## Space Station Shell
 
-`ss init` adds this alias to your `~/.zshrc`:
+Run `ss launch` to start a subshell with:
+
+- 🛸 emoji in your prompt (works with Starship)
+- `ss` command available
+- Custom aliases from `launch.sh`
+
+Edit `launch.sh` to add your own shortcuts:
 
 ```bash
-alias cl="claude --dangerously-skip-permissions"
+# launch.sh
+alias agent="claude"        # default
+alias dev="pnpm dev"        # add your own
 ```
 
 ## License
