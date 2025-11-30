@@ -47,11 +47,13 @@ else
     # Expand ~ in SPACESTATION_DIR
     SPACESTATION_DIR="${SPACESTATION_DIR/#\~/$HOME}"
 
-    # Change to the universe directory
-    if [ ! -d "$SPACESTATION_DIR" ]; then
-        mkdir -p "$SPACESTATION_DIR"
+    # Change to the universe directory (except for launch/agent which stay in current dir)
+    if [ "$1" != "launch" ] && [ "$1" != "agent" ] && [ $# -gt 0 ]; then
+        if [ ! -d "$SPACESTATION_DIR" ]; then
+            mkdir -p "$SPACESTATION_DIR"
+        fi
+        cd "$SPACESTATION_DIR"
     fi
-    cd "$SPACESTATION_DIR"
 fi
 
 # Function to show status for all planets
@@ -903,13 +905,14 @@ elif [ "$1" = "agent" ]; then
         fi
     fi
 
-    # Run agent
+    # Run agent (use DEFAULT_AGENT from launch.sh, or fall back to claude)
+    agent_cmd="${DEFAULT_AGENT:-claude}"
     if [ -n "$agent_args" ]; then
         echo -e "🤖 ${BLUE}Running agent...${NC}"
-        agent "$agent_args"
+        $agent_cmd "$agent_args"
     else
         echo -e "🤖 ${BLUE}Running agent...${NC}"
-        agent
+        $agent_cmd
     fi
 elif [ "$1" = "reset" ] || [ "$1" = "-r" ]; then
     # Reset command

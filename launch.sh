@@ -4,13 +4,13 @@
 # Note: `ss` is already aliased automatically
 
 # Agent aliases
-export AGENT="claude"
+#export DEFAULT_AGENT="claude"
 # For more autonomous agent experience:
-# export AGENT="claude --dangerously-skip-permissions"
+export DEFAULT_AGENT="claude --dangerously-skip-permissions --model opus"
 
-alias agent="$AGENT"
-alias resume="$AGENT --resume"
-alias cont="$AGENT --continue"
+alias default_agent="$DEFAULT_AGENT"
+alias resume="$DEFAULT_AGENT --resume"
+alias cont="$DEFAULT_AGENT --continue"
 
 # Space Station subcommand aliases
 alias help="ss help"
@@ -21,8 +21,9 @@ alias setup="ss setup"
 alias symlink="ss symlink"
 alias issues="ss issues"
 alias sync="ss sync"
-alias pr="ss pr"
+alias prs="ss prs"
 alias reset="ss reset"
+alias agent="ss agent"
 
 # Planet aliases
 alias a="ss a"
