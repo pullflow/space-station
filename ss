@@ -62,8 +62,31 @@ else
     fi
 fi
 
+# Function to detect which planet is running the dev server (from shared env port)
+get_dev_planet() {
+    local shared_dir="$SPACESTATION_DIR/shared"
+    local port_line=""
+    [ -f "$shared_dir/.env" ] && port_line=$(grep -E '^APP_BOARD_PORT=' "$shared_dir/.env" 2>/dev/null | head -1)
+    [ -z "$port_line" ] && [ -f "$shared_dir/.env.local" ] && port_line=$(grep -E '^APP_BOARD_PORT=' "$shared_dir/.env.local" 2>/dev/null | head -1)
+    [ -z "$port_line" ] && return
+    local port="${port_line#*=}"
+    port="${port%\"}"
+    port="${port#\"}"
+    [ -z "$port" ] && return
+    local pid
+    pid=$(lsof -i ":$port" -t 2>/dev/null)
+    [ -z "$pid" ] && return
+    local cwd
+    cwd=$(lsof -p "$pid" 2>/dev/null | awk '/cwd/{print $NF}')
+    [[ "$cwd" != *"/planet-"* ]] && return
+    sed -n "s|.*/planet-\([^/]*\)/.*|\1|p" <<< "$cwd"
+}
+
 # Function to show status for all planets
 show_status() {
+    local dev_planet
+    dev_planet=$(get_dev_planet)
+
     for dir in planet-*/; do
         if [ -d "$dir" ]; then
             cd "$dir"
@@ -77,6 +100,12 @@ show_status() {
             else
                 changed_count=$(echo "$status" | wc -l | tr -d ' ')
                 git_status="${YELLOW}🔧Active:${changed_count}${NC}"
+            fi
+
+            # Dev server indicator
+            dev_indicator=""
+            if [ -n "$dev_planet" ] && [ "$space_name" = "planet-$dev_planet" ]; then
+                dev_indicator=" ${GREEN}🚀 running${NC}"
             fi
 
             # Get associated PR
@@ -109,9 +138,9 @@ show_status() {
                     checks_info="${YELLOW}~Checks${NC}"
                 fi
 
-                echo -e "🪐 ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${pr_info} ${reviews_info} ${checks_info}"
+                echo -e "🪐 ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${pr_info} ${reviews_info} ${checks_info}${dev_indicator}"
             else
-                echo -e "🪐 ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${RED}No PR${NC}"
+                echo -e "🪐 ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${RED}No PR${NC}${dev_indicator}"
             fi
             cd ..
         fi

@@ -6,7 +6,7 @@
 # Agent aliases
 #export DEFAULT_AGENT="claude"
 # For more autonomous agent experience:
-export DEFAULT_AGENT="claude --dangerously-skip-permissions --model opus"
+export DEFAULT_AGENT="/Users/zak/.claude/local/claude --dangerously-skip-permissions --model opus"
 
 alias default_agent="$DEFAULT_AGENT"
 alias resume="$DEFAULT_AGENT --resume"
