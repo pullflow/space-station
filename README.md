@@ -96,8 +96,8 @@ When you run `list` (or `ss list`), you'll see:
 ```
 🛸 Space Station
 
-🪐 planet-mercury: feature-branch [🔧Active:3] PR#123(OPEN) ✓2/⧗1/✗0 ✓Checks
-🪐 planet-venus: main [✨Available] No PR
+🌑 planet-mercury: feature-branch [🔧Active:3] PR#123(OPEN) ✓2/⧗1/✗0 ✓Checks
+🌕 planet-venus: main [✨Available] No PR
 ...
 ```
 

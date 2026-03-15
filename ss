@@ -108,6 +108,15 @@ show_status() {
                 dev_indicator=" ${GREEN}🚀 running${NC}"
             fi
 
+            # Get emoji
+            case "$space_name" in
+                "planet-mercury") emoji="🌑" ;;
+                "planet-venus")   emoji="🌕" ;;
+                "planet-earth")   emoji="🌍" ;;
+                "planet-mars")    emoji="🔴" ;;
+                *)                emoji="🪐" ;;
+            esac
+
             # Get associated PR
             pr_number=$(gh pr list --head "$branch" --json number -q ".[0].number" 2>/dev/null)
             if [ -n "$pr_number" ]; then
@@ -138,9 +147,9 @@ show_status() {
                     checks_info="${YELLOW}~Checks${NC}"
                 fi
 
-                echo -e "🪐 ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${pr_info} ${reviews_info} ${checks_info}${dev_indicator}"
+                echo -e "${emoji} ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${pr_info} ${reviews_info} ${checks_info}${dev_indicator}"
             else
-                echo -e "🪐 ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${RED}No PR${NC}${dev_indicator}"
+                echo -e "${emoji} ${BLUE}${space_name}${NC}: ${branch} [${git_status}] ${RED}No PR${NC}${dev_indicator}"
             fi
             cd ..
         fi
@@ -814,11 +823,13 @@ if [ $# -eq 0 ] || [ "$1" = "launch" ]; then
     current_dir=$(basename "$(pwd)")
     prompt_prefix="🛸"
     if [[ "$current_dir" =~ ^planet- ]]; then
-        if [ "$current_dir" = "planet-earth" ]; then
-            prompt_prefix="🌎"
-        else
-            prompt_prefix="🪐"
-        fi
+        case "$current_dir" in
+            "planet-mercury") prompt_prefix="🌑" ;;
+            "planet-venus")   prompt_prefix="🌕" ;;
+            "planet-earth")   prompt_prefix="🌍" ;;
+            "planet-mars")    prompt_prefix="🔴" ;;
+            *)                prompt_prefix="🪐" ;;
+        esac
     fi
 
     echo -e "${CYAN}${prompt_prefix} Space Station${NC}"
