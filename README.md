@@ -8,11 +8,10 @@ Instead of constantly switching branches, Space Station lets you work on multipl
 
 ```
 space-station/
-├── planet-a/        # Working on feature X
-├── planet-b/        # Reviewing PR Y
-├── planet-c/        # Bug fix Z
-├── planet-d/        # Available
+├── planet-mercury/  # Working on feature X
+├── planet-venus/    # Reviewing PR Y
 ├── planet-earth/    # Always on main branch 🌍
+├── planet-mars/     # Bug fix Z
 └── shared/          # Shared env files (symlinked to all planets)
 ```
 
@@ -61,7 +60,7 @@ Any files here will be symlinked to all planets.
 ./ss setup
 ```
 
-This clones 5 copies of your repo (planet-a through planet-earth) and symlinks shared files.
+This clones 4 copies of your repo (planet-mercury through planet-mars) and symlinks shared files.
 
 ### Step 6: Launch
 
@@ -78,7 +77,7 @@ Inside the Space Station shell, these shortcuts are available:
 | Command | Description |
 |---------|-------------|
 | `list` | Show status of all planets (branch, changes, PR info) |
-| `a` / `b` / `c` / `d` / `earth` | Open a planet in your editor |
+| `mercury` / `venus` / `earth` / `mars` | Open a planet in your editor |
 | `pr` | List open PRs (authored by you or awaiting review) |
 | `pr <number> [planet]` | Checkout PR in a planet (default: earth) |
 | `reset <planet>` | Reset a planet to latest main |
@@ -97,8 +96,8 @@ When you run `list` (or `ss list`), you'll see:
 ```
 🛸 Space Station
 
-🪐 planet-a: feature-branch [🔧Active:3] PR#123(OPEN) ✓2/⧗1/✗0 ✓Checks
-🪐 planet-b: main [✨Available] No PR
+🪐 planet-mercury: feature-branch [🔧Active:3] PR#123(OPEN) ✓2/⧗1/✗0 ✓Checks
+🪐 planet-venus: main [✨Available] No PR
 ...
 ```
 
@@ -128,12 +127,12 @@ Edit once in `shared/`, changes apply to all planets. Run `ss symlink` anytime t
 list                     # See all planets at a glance
 
 # Start work on a new PR
-pr 456 a                 # Checkout PR #456 in planet-a
-a                        # Open planet-a in editor
+pr 456 mercury           # Checkout PR #456 in planet-mercury
+mercury                  # Open planet-mercury in editor
 
 # While waiting for review, work on something else
-pr 789 b                 # Checkout PR #789 in planet-b
-b                        # Open planet-b in editor
+pr 789 venus             # Checkout PR #789 in planet-venus
+venus                    # Open planet-venus in editor
 
 # Need AI help? Launch Claude in any planet directory
 agent                    # Starts claude CLI
@@ -142,7 +141,7 @@ agent                    # Starts claude CLI
 list
 
 # Done with a PR? Reset the planet
-reset a                  # Reset planet-a to main
+reset mercury            # Reset planet-mercury to main
 ```
 
 ## Prerequisites
@@ -202,7 +201,7 @@ alias logs="tail -f ./logs/dev.log"
 The default `launch.sh` includes:
 - `agent`, `resume`, `cont` - Claude CLI aliases
 - `list`, `pr`, `issues`, `reset`, etc. - All ss subcommands
-- `a`, `b`, `c`, `d`, `earth` - Planet shortcuts
+- `mercury`, `venus`, `earth`, `mars` - Planet shortcuts
 
 ## Recommended Terminal Layout
 
@@ -210,18 +209,18 @@ Use your terminal's split view to create a 2x2 grid for maximum productivity:
 
 ```
 ┌─────────────────┬─────────────────┐
-│  ss             │  planet-a       │
+│  ss             │  planet-mercury │
 │  (command hub)  │  (feature work) │
 ├─────────────────┼─────────────────┤
-│  planet-earth   │  planet-b       │
+│  planet-earth   │  planet-venus   │
 │  (main branch)  │  (PR review)    │
 └─────────────────┴─────────────────┘
 ```
 
 - **Top-left**: `ss` - your command hub for status checks and navigation
 - **Bottom-left**: `planet-earth` - always on main for quick reference
-- **Top-right**: `planet-a` - active feature development
-- **Bottom-right**: `planet-b` - PR review or second task
+- **Top-right**: `planet-mercury` - active feature development
+- **Bottom-right**: `planet-venus` - PR review or second task
 
 ## License
 

@@ -587,7 +587,7 @@ check_deps() {
 
 # Function to symlink all files from shared/ to all planets
 symlink_shared() {
-    local spaces=("a" "b" "c" "d" "earth")
+    local spaces=("mercury" "venus" "earth" "mars")
     local shared_dir="$SPACESTATION_DIR/shared"
 
     echo -e "🔗 ${BLUE}Symlinking shared files to all planets...${NC}"
@@ -674,7 +674,7 @@ symlink_shared() {
 
 # Function to setup all planets
 setup_planets() {
-    local spaces=("a" "b" "c" "d" "earth")
+    local spaces=("mercury" "venus" "earth" "mars")
     local repo_url="https://github.com/${REPO}.git"
     local shared_dir="$SPACESTATION_DIR/shared"
 
@@ -698,7 +698,7 @@ setup_planets() {
     echo ""
     echo -e "How it works:"
     echo -e "  1. Put your env files in ${CYAN}${shared_dir}/${NC}"
-    echo -e "  2. Each planet gets a symlink: ${CYAN}planet-a/.env.local${NC} -> ${CYAN}../shared/.env.local${NC}"
+    echo -e "  2. Each planet gets a symlink: ${CYAN}planet-mercury/.env.local${NC} -> ${CYAN}../shared/.env.local${NC}"
     echo -e "  3. All planets share the same files (edit once, applies everywhere)"
     echo ""
 
@@ -897,9 +897,9 @@ elif [ "$1" = "prs" ]; then
     else
         # PR number provided, checkout the PR
         pr_number=$2
-        space=${3:-main}  # Default to "main" if not provided
-        if [[ ! "$space" =~ ^(a|b|c|d|earth)$ ]]; then
-            echo -e "${RED}Error: Invalid planet name. Use: a, b, c, d, or earth${NC}"
+        space=${3:-earth}  # Default to "earth" if not provided
+        if [[ ! "$space" =~ ^(mercury|venus|earth|mars)$ ]]; then
+            echo -e "${RED}Error: Invalid planet name. Use: mercury, venus, earth, or mars${NC}"
             exit 1
         fi
         checkout_pr "$pr_number" "$space"
@@ -978,12 +978,12 @@ elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo -e "                              Run agent (from planet folder), optionally with issue/pr context"
     echo -e "  ${GREEN}ss land${NC}                   Open current planet in editor (from planet folder)"
     echo -e "  ${GREEN}ss reset${NC}                  Reset current planet to latest main (from planet folder)"
-    echo -e "  ${GREEN}ss [a|b|c|d|earth]${NC}        Open planet in editor"
+    echo -e "  ${GREEN}ss [mercury|venus|earth|mars]${NC}        Open planet in editor"
     echo -e "  ${GREEN}ss config${NC}                 Show current configuration"
     echo -e "  ${GREEN}ss help${NC}                   Show this help message"
 else
     # Open planet in editor
-    if [[ "$1" =~ ^(a|b|c|d|earth)$ ]]; then
+    if [[ "$1" =~ ^(mercury|venus|earth|mars)$ ]]; then
         open_planet "$1"
     else
         echo -e "${RED}Error: Unknown command '$1'${NC}"
