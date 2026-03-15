@@ -27,8 +27,11 @@ alias land="ss land"
 alias reset="ss reset"
 
 # Planet aliases
-alias a="ss a"
-alias b="ss b"
-alias c="ss c"
-alias d="ss d"
+alias mercury="ss mercury"
+alias venus="ss venus"
 alias earth="ss earth"
+alias mars="ss mars"
+
+alias mer="ss mercury"
+alias ven="ss venus"
+alias mar="ss mars"
