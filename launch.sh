@@ -6,7 +6,8 @@
 # Agent aliases
 #export DEFAULT_AGENT="claude"
 # For more autonomous agent experience:
-export DEFAULT_AGENT="/Users/zak/.claude/local/claude --dangerously-skip-permissions --model opus"
+export DEFAULT_AGENT="claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions --effort low"
+export EDITOR="zed"
 
 alias default_agent="$DEFAULT_AGENT"
 alias resume="$DEFAULT_AGENT --resume"
@@ -20,6 +21,7 @@ alias init="ss init"
 alias setup="ss setup"
 alias symlink="ss symlink"
 alias issues="ss issues"
+alias issue="ss issue"
 alias sync="ss sync"
 alias prs="ss prs"
 alias agent="ss agent"

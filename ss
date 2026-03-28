@@ -54,7 +54,7 @@ else
     fi
 
     # Change to the universe directory (except for commands that run from current dir)
-    if [ "$1" != "launch" ] && [ "$1" != "agent" ] && [ "$1" != "reset" ] && [ "$1" != "land" ] && [ $# -gt 0 ]; then
+    if [ "$1" != "launch" ] && [ "$1" != "agent" ] && [ "$1" != "reset" ] && [ "$1" != "land" ] && [ "$1" != "issue" ] && [ $# -gt 0 ]; then
         if [ ! -d "$SPACESTATION_DIR" ]; then
             mkdir -p "$SPACESTATION_DIR"
         fi
@@ -887,7 +887,7 @@ STARSHIP_EOF
         # No starship - just set PROMPT directly
         ZDOTDIR="$SPACESTATION_DIR" PROMPT="${prompt_prefix} %~ %# " zsh -i
     fi
-elif [ "$1" = "list" ] || [ "$1" = "status" ]; then
+elif [ "$1" = "list" ] || [ "$1" = "status" ] || [ "$1" = "ls" ]; then
     # Show status of all planets
     show_status
 elif [ "$1" = "init" ]; then
@@ -896,6 +896,22 @@ elif [ "$1" = "setup" ]; then
     setup_planets
 elif [ "$1" = "issues" ]; then
     show_issues
+elif [ "$1" = "issue" ]; then
+    # Issue command - must be run from a planet folder
+    current_dir=$(basename "$(pwd)")
+    if [[ ! "$current_dir" =~ ^planet- ]]; then
+        echo -e "${RED}Error: issue must be run from a planet folder${NC}"
+        exit 1
+    fi
+    if [ $# -lt 2 ]; then
+        echo -e "${RED}Error: Missing issue number${NC}"
+        echo -e "Usage: ${GREEN}ss issue <number>${NC}"
+        exit 1
+    fi
+    issue_num=$2
+    agent_cmd="${DEFAULT_AGENT:-claude}"
+    echo -e "🤖 ${BLUE}Running agent for issue #${issue_num}...${NC}"
+    $agent_cmd "/issue ${issue_num}"
 elif [ "$1" = "sync" ]; then
     sync_issues
 elif [ "$1" = "symlink" ]; then
@@ -977,11 +993,12 @@ elif [ "$1" = "config" ]; then
 elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo -e "${YELLOW}Usage:${NC}"
     echo -e "  ${GREEN}ss${NC}                        Launch Space Station shell (default)"
-    echo -e "  ${GREEN}ss list${NC}                   Show status of all planets"
+    echo -e "  ${GREEN}ss list|ls|status${NC}          Show status of all planets"
     echo -e "  ${GREEN}ss init${NC}                   Initialize environment (create config files)"
     echo -e "  ${GREEN}ss setup${NC}                  Setup/create all planets, install deps, link shared files"
     echo -e "  ${GREEN}ss symlink${NC}                Symlink all files from ./shared to all planets"
     echo -e "  ${GREEN}ss issues${NC}                 Show open issues assigned to you"
+    echo -e "  ${GREEN}ss issue <number>${NC}         Open agent with issue prompt"
     echo -e "  ${GREEN}ss sync${NC}                   Sync GitHub issues to todo.md"
     echo -e "  ${GREEN}ss prs${NC}                    List open PRs (authored by you or awaiting review)"
     echo -e "  ${GREEN}ss prs <number> [planet]${NC}  Checkout PR in a planet (default: earth)"
