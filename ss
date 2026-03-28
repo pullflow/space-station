@@ -110,10 +110,10 @@ show_status() {
 
             # Get emoji
             case "$space_name" in
-                "planet-mercury") emoji="🌑" ;;
-                "planet-venus")   emoji="🌕" ;;
-                "planet-earth")   emoji="🌍" ;;
-                "planet-mars")    emoji="🔴" ;;
+                "planet-mercury") emoji="🟫" ;;
+                "planet-venus")   emoji="🟧" ;;
+                "planet-earth")   emoji="🟦" ;;
+                "planet-mars")    emoji="🟥" ;;
                 *)                emoji="🪐" ;;
             esac
 
@@ -824,10 +824,10 @@ if [ $# -eq 0 ] || [ "$1" = "launch" ]; then
     prompt_prefix="🛸"
     if [[ "$current_dir" =~ ^planet- ]]; then
         case "$current_dir" in
-            "planet-mercury") prompt_prefix="🌑" ;;
-            "planet-venus")   prompt_prefix="🌕" ;;
-            "planet-earth")   prompt_prefix="🌍" ;;
-            "planet-mars")    prompt_prefix="🔴" ;;
+            "planet-mercury") prompt_prefix="🟫" ;;
+            "planet-venus")   prompt_prefix="🟧" ;;
+            "planet-earth")   prompt_prefix="🟦" ;;
+            "planet-mars")    prompt_prefix="🟥" ;;
             *)                prompt_prefix="🪐" ;;
         esac
     fi
@@ -910,8 +910,19 @@ elif [ "$1" = "issue" ]; then
     fi
     issue_num=$2
     agent_cmd="${DEFAULT_AGENT:-claude}"
+    
+    # Determine planet and color
+    planet_name="${current_dir#planet-}"
+    case "$planet_name" in
+        "mercury") color_name="brown" ;;
+        "venus")   color_name="orange" ;;
+        "earth")   color_name="blue" ;;
+        "mars")    color_name="red" ;;
+        *)         color_name="gray" ;;
+    esac
+
     echo -e "🤖 ${BLUE}Running agent for issue #${issue_num}...${NC}"
-    $agent_cmd "/issue ${issue_num}"
+    $agent_cmd "/color $color_name /rename $planet_name #$issue_num /issue $issue_num"
 elif [ "$1" = "sync" ]; then
     sync_issues
 elif [ "$1" = "symlink" ]; then
@@ -953,12 +964,30 @@ elif [ "$1" = "agent" ]; then
 
     # Run agent (use DEFAULT_AGENT from launch.sh, or fall back to claude)
     agent_cmd="${DEFAULT_AGENT:-claude}"
+
+    # Determine planet and color
+    planet_name="${current_dir#planet-}"
+    case "$planet_name" in
+        "mercury") color_name="brown" ;;
+        "venus")   color_name="orange" ;;
+        "earth")   color_name="blue" ;;
+        "mars")    color_name="red" ;;
+        *)         color_name="gray" ;;
+    esac
+
     if [ -n "$agent_args" ]; then
         echo -e "🤖 ${BLUE}Running agent...${NC}"
-        $agent_cmd "$agent_args"
+        # If it was an issue/pr command, append details to the rename
+        if [[ "$agent_args" == *"issue"* ]]; then
+            # Extract issue number from agent_args (which is "focus on gh issue N")
+            issue_num=$(echo "$agent_args" | grep -oE '[0-9]+' | head -1)
+            $agent_cmd "/color $color_name /rename $planet_name #$issue_num $agent_args"
+        else
+            $agent_cmd "/color $color_name /rename $planet_name $agent_args"
+        fi
     else
         echo -e "🤖 ${BLUE}Running agent...${NC}"
-        $agent_cmd
+        $agent_cmd "/color $color_name /rename $planet_name"
     fi
 elif [ "$1" = "reset" ]; then
     # Reset command - must be run from a planet folder
