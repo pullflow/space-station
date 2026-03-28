@@ -911,18 +911,8 @@ elif [ "$1" = "issue" ]; then
     issue_num=$2
     agent_cmd="${DEFAULT_AGENT:-claude}"
     
-    # Determine planet and color
-    planet_name="${current_dir#planet-}"
-    case "$planet_name" in
-        "mercury") color_name="default" ;;
-        "venus")   color_name="yellow" ;;
-        "earth")   color_name="blue" ;;
-        "mars")    color_name="red" ;;
-        *)         color_name="default" ;;
-    esac
-
     echo -e "🤖 ${BLUE}Running agent for issue #${issue_num}...${NC}"
-    $agent_cmd "/color $color_name /rename $planet_name #$issue_num /issue $issue_num"
+    $agent_cmd "/issue $issue_num"
 elif [ "$1" = "sync" ]; then
     sync_issues
 elif [ "$1" = "symlink" ]; then
@@ -965,29 +955,12 @@ elif [ "$1" = "agent" ]; then
     # Run agent (use DEFAULT_AGENT from launch.sh, or fall back to claude)
     agent_cmd="${DEFAULT_AGENT:-claude}"
 
-    # Determine planet and color
-    planet_name="${current_dir#planet-}"
-    case "$planet_name" in
-        "mercury") color_name="default" ;;
-        "venus")   color_name="yellow" ;;
-        "earth")   color_name="blue" ;;
-        "mars")    color_name="red" ;;
-        *)         color_name="default" ;;
-    esac
-
     if [ -n "$agent_args" ]; then
         echo -e "🤖 ${BLUE}Running agent...${NC}"
-        # If it was an issue/pr command, append details to the rename
-        if [[ "$agent_args" == *"issue"* ]]; then
-            # Extract issue number from agent_args (which is "focus on gh issue N")
-            issue_num=$(echo "$agent_args" | grep -oE '[0-9]+' | head -1)
-            $agent_cmd "/color $color_name /rename $planet_name #$issue_num $agent_args"
-        else
-            $agent_cmd "/color $color_name /rename $planet_name $agent_args"
-        fi
+        $agent_cmd "$agent_args"
     else
         echo -e "🤖 ${BLUE}Running agent...${NC}"
-        $agent_cmd "/color $color_name /rename $planet_name"
+        $agent_cmd
     fi
 elif [ "$1" = "reset" ]; then
     # Reset command - must be run from a planet folder
