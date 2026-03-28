@@ -914,11 +914,11 @@ elif [ "$1" = "issue" ]; then
     # Determine planet and color
     planet_name="${current_dir#planet-}"
     case "$planet_name" in
-        "mercury") color_name="brown" ;;
+        "mercury") color_name="yellow" ;;
         "venus")   color_name="orange" ;;
         "earth")   color_name="blue" ;;
         "mars")    color_name="red" ;;
-        *)         color_name="gray" ;;
+        *)         color_name="default" ;;
     esac
 
     echo -e "🤖 ${BLUE}Running agent for issue #${issue_num}...${NC}"
@@ -968,11 +968,11 @@ elif [ "$1" = "agent" ]; then
     # Determine planet and color
     planet_name="${current_dir#planet-}"
     case "$planet_name" in
-        "mercury") color_name="brown" ;;
+        "mercury") color_name="yellow" ;;
         "venus")   color_name="orange" ;;
         "earth")   color_name="blue" ;;
         "mars")    color_name="red" ;;
-        *)         color_name="gray" ;;
+        *)         color_name="default" ;;
     esac
 
     if [ -n "$agent_args" ]; then
