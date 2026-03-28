@@ -110,7 +110,7 @@ show_status() {
 
             # Get emoji
             case "$space_name" in
-                "planet-mercury") emoji="🟨" ;;
+                "planet-mercury") emoji="⬜" ;;
                 "planet-venus")   emoji="🟧" ;;
                 "planet-earth")   emoji="🟦" ;;
                 "planet-mars")    emoji="🟥" ;;
@@ -824,7 +824,7 @@ if [ $# -eq 0 ] || [ "$1" = "launch" ]; then
     prompt_prefix="🛸"
     if [[ "$current_dir" =~ ^planet- ]]; then
         case "$current_dir" in
-            "planet-mercury") prompt_prefix="🟨" ;;
+            "planet-mercury") prompt_prefix="⬜" ;;
             "planet-venus")   prompt_prefix="🟧" ;;
             "planet-earth")   prompt_prefix="🟦" ;;
             "planet-mars")    prompt_prefix="🟥" ;;
@@ -914,7 +914,7 @@ elif [ "$1" = "issue" ]; then
     # Determine planet and color
     planet_name="${current_dir#planet-}"
     case "$planet_name" in
-        "mercury") color_name="yellow" ;;
+        "mercury") color_name="default" ;;
         "venus")   color_name="orange" ;;
         "earth")   color_name="blue" ;;
         "mars")    color_name="red" ;;
@@ -968,7 +968,7 @@ elif [ "$1" = "agent" ]; then
     # Determine planet and color
     planet_name="${current_dir#planet-}"
     case "$planet_name" in
-        "mercury") color_name="yellow" ;;
+        "mercury") color_name="default" ;;
         "venus")   color_name="orange" ;;
         "earth")   color_name="blue" ;;
         "mars")    color_name="red" ;;
