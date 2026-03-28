@@ -911,12 +911,19 @@ elif [ "$1" = "issue" ]; then
     issue_num=$2
     agent_cmd="${DEFAULT_AGENT:-claude}"
 
-    # Determine humanized planet name
+    # Determine humanized planet name and emoji
     planet_name="${current_dir#planet-}"
     human_name="$(tr '[:lower:]' '[:upper:]' <<< "${planet_name:0:1}")${planet_name:1}"
+    case "$planet_name" in
+        "mercury") emoji="⬜️" ;;
+        "venus")   emoji="🟨" ;;
+        "earth")   emoji="🟦" ;;
+        "mars")    emoji="🟥" ;;
+        *)         emoji="🪐" ;;
+    esac
     
     echo -e "🤖 ${BLUE}Running agent for issue #${issue_num}...${NC}"
-    $agent_cmd --name "$human_name #$issue_num" "/issue $issue_num"
+    $agent_cmd --name "$emoji $human_name #$issue_num" "/issue $issue_num"
 elif [ "$1" = "sync" ]; then
     sync_issues
 elif [ "$1" = "symlink" ]; then
@@ -959,22 +966,29 @@ elif [ "$1" = "agent" ]; then
     # Run agent (use DEFAULT_AGENT from launch.sh, or fall back to claude)
     agent_cmd="${DEFAULT_AGENT:-claude}"
 
-    # Determine humanized planet name
+    # Determine humanized planet name and emoji
     planet_name="${current_dir#planet-}"
     human_name="$(tr '[:lower:]' '[:upper:]' <<< "${planet_name:0:1}")${planet_name:1}"
+    case "$planet_name" in
+        "mercury") emoji="⬜️" ;;
+        "venus")   emoji="🟨" ;;
+        "earth")   emoji="🟦" ;;
+        "mars")    emoji="🟥" ;;
+        *)         emoji="🪐" ;;
+    esac
 
     if [ -n "$agent_args" ]; then
         echo -e "🤖 ${BLUE}Running agent...${NC}"
         # If it's an issue command, append issue number to the name
         if [[ "$agent_args" == *"issue"* ]]; then
             issue_num=$(echo "$agent_args" | grep -oE '[0-9]+' | head -1)
-            $agent_cmd --name "$human_name #$issue_num" "$agent_args"
+            $agent_cmd --name "$emoji $human_name #$issue_num" "$agent_args"
         else
-            $agent_cmd --name "$human_name" "$agent_args"
+            $agent_cmd --name "$emoji $human_name" "$agent_args"
         fi
     else
         echo -e "🤖 ${BLUE}Running agent...${NC}"
-        $agent_cmd --name "$human_name"
+        $agent_cmd --name "$emoji $human_name"
     fi
 elif [ "$1" = "reset" ]; then
     # Reset command - must be run from a planet folder
