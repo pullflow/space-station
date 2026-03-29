@@ -34,6 +34,16 @@ alias venus="ss venus"
 alias earth="ss earth"
 alias mars="ss mars"
 
+alias a="ss mercury"
+alias b="ss venus"
+alias c="ss earth"
+alias d="ss mars"
+
+alias e="ss earth"
+alias v="ss venus"
+alias my="ss mercury"
+alias ms="ss mars"
+
 alias mer="ss mercury"
 alias ven="ss venus"
 alias mar="ss mars"

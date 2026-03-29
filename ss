@@ -252,11 +252,55 @@ sync_issues() {
     fi
 }
 
-# Function to open a planet
+# Function to reset current planet (must be run from planet folder)
+reset_planet() {
+    # Check if git status is clean
+    status=$(git status --porcelain)
+    if [ -n "$status" ]; then
+        echo -e "${RED}Error: Git status is not clean. Please commit or stash changes first.${NC}"
+        echo "$status"
+        exit 1
+    fi
+
+    echo -e "${GREEN}Git status is clean${NC}"
+    echo -e "${BLUE}Checking out main...${NC}"
+    git checkout main
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Error: Failed to checkout main${NC}"
+        exit 1
+    fi
+
+    echo -e "${BLUE}Pulling latest from origin...${NC}"
+    git pull origin main
+
+    if [ $? -eq 0 ]; then
+        echo -e "✅ ${GREEN}Successfully reset planet to latest main${NC}"
+    else
+        echo -e "${RED}Error: Failed to pull from origin${NC}"
+        exit 1
+    fi
+}
+
+# Function to prepare (reset) and open a planet
 open_planet() {
-    local planet="planet-$1"
-    echo -e "🪐 ${BLUE}Opening planet '${planet}' in $EDITOR...${NC}"
-    $EDITOR "$planet"
+    local planet_name=$1
+    local planet_dir="planet-$planet_name"
+
+    if [ ! -d "$planet_dir" ]; then
+        echo -e "${RED}Error: Planet directory '${planet_dir}' does not exist${NC}"
+        exit 1
+    fi
+
+    echo -e "🚀 ${BLUE}Traveling to ${planet_name}...${NC}"
+    cd "$planet_dir"
+
+    # Reset the planet (checkout main and pull)
+    reset_planet
+
+    # Open the folder in the editor
+    echo -e "🪐 ${BLUE}Opening in $EDITOR...${NC}"
+    $EDITOR .
 }
 
 # Function to list PRs authored by user or awaiting their review
@@ -406,36 +450,6 @@ checkout_pr() {
     # Return to spaces folder
     cd "$SPACESTATION_DIR"
     echo -e "✅ ${GREEN}Successfully checked out PR #${pr_number} in planet '${space}'${NC}"
-}
-
-# Function to reset current planet (must be run from planet folder)
-reset_planet() {
-    # Check if git status is clean
-    status=$(git status --porcelain)
-    if [ -n "$status" ]; then
-        echo -e "${RED}Error: Git status is not clean. Please commit or stash changes first.${NC}"
-        echo "$status"
-        exit 1
-    fi
-
-    echo -e "${GREEN}Git status is clean${NC}"
-    echo -e "${BLUE}Checking out main...${NC}"
-    git checkout main
-
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Error: Failed to checkout main${NC}"
-        exit 1
-    fi
-
-    echo -e "${BLUE}Pulling latest from origin...${NC}"
-    git pull origin main
-
-    if [ $? -eq 0 ]; then
-        echo -e "✅ ${GREEN}Successfully reset planet to latest main${NC}"
-    else
-        echo -e "${RED}Error: Failed to pull from origin${NC}"
-        exit 1
-    fi
 }
 
 # Function to initialize user environment
@@ -1036,16 +1050,20 @@ elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo -e "                              Run agent (from planet folder), optionally with issue/pr context"
     echo -e "  ${GREEN}ss land${NC}                   Open current planet in editor (from planet folder)"
     echo -e "  ${GREEN}ss reset${NC}                  Reset current planet to latest main (from planet folder)"
-    echo -e "  ${GREEN}ss [mercury|venus|earth|mars]${NC}        Open planet in editor"
+    echo -e "  ${GREEN}ss [earth|e|mercury|my|venus|v|mars|ms]${NC} Reset and open planet"
     echo -e "  ${GREEN}ss config${NC}                 Show current configuration"
     echo -e "  ${GREEN}ss help${NC}                   Show this help message"
 else
-    # Open planet in editor
-    if [[ "$1" =~ ^(mercury|venus|earth|mars)$ ]]; then
-        open_planet "$1"
-    else
-        echo -e "${RED}Error: Unknown command '$1'${NC}"
-        echo -e "Run ${GREEN}ss help${NC} for usage information"
-        exit 1
-    fi
+    # Handle planet commands (full names or abbreviations)
+    case "$1" in
+        earth|e|c)    open_planet "earth" ;;
+        mercury|my|a) open_planet "mercury" ;;
+        venus|v|b)    open_planet "venus" ;;
+        mars|ms|d)    open_planet "mars" ;;
+        *)
+            echo -e "${RED}Error: Unknown command '$1'${NC}"
+            echo -e "Run ${GREEN}ss help${NC} for usage information"
+            exit 1
+            ;;
+    esac
 fi
