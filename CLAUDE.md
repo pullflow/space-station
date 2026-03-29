@@ -59,7 +59,7 @@ Environment files in `/shared/` are symlinked or referenced by planets:
 
 ## Space status shell env values
 
-This values should be in the shell. If missing, suggest adding to ~/.zshrc.
+These values should be in the shell. If missing, suggest adding to ~/.zshrc.
 ```sh
 export CLAUDE_CODE_USE_VERTEX=1
 export CLOUD_ML_REGION=global
