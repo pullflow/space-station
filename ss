@@ -832,19 +832,22 @@ setup_planets() {
 if [ $# -eq 0 ] || [ "$1" = "launch" ]; then
     # No arguments or "launch": launch subshell
     # Launch a subshell with space station prompt
-
+    
+    # [ ... keep existing launch logic ... ]
     # Detect if we're in a planet folder
-    current_dir=$(basename "$(pwd)")
+    current_dir=$(basename "$(pwd)" | tr '[:upper:]' '[:lower:]')
     prompt_prefix="🛸"
-    if [[ "$current_dir" =~ ^planet- ]]; then
-        case "$current_dir" in
-            "planet-mercury") prompt_prefix="⬜️" ;;
-            "planet-venus")   prompt_prefix="🟨" ;;
-            "planet-earth")   prompt_prefix="🟦" ;;
-            "planet-mars")    prompt_prefix="🟥" ;;
-            *)                prompt_prefix="🪐" ;;
-        esac
-    fi
+    case "$current_dir" in
+        "mercury") prompt_prefix="1️⃣" ;;
+        "venus")   prompt_prefix="2️⃣" ;;
+        "earth")   prompt_prefix="3️⃣" ;;
+        "mars")    prompt_prefix="4️⃣" ;;
+        "jupiter") prompt_prefix="5️⃣" ;;
+        "saturn")  prompt_prefix="6️⃣" ;;
+        "uranus")  prompt_prefix="7️⃣" ;;
+        "neptune") prompt_prefix="8️⃣" ;;
+        *)         prompt_prefix="🔘" ;;
+    esac
 
     echo -e "${CYAN}${prompt_prefix} Space Station${NC}"
     echo ""
@@ -901,169 +904,8 @@ STARSHIP_EOF
         # No starship - just set PROMPT directly
         ZDOTDIR="$SPACESTATION_DIR" PROMPT="${prompt_prefix} %~ %# " zsh -i
     fi
-elif [ "$1" = "list" ] || [ "$1" = "status" ] || [ "$1" = "ls" ]; then
-    # Show status of all planets
-    show_status
-elif [ "$1" = "init" ]; then
-    init_planets
-elif [ "$1" = "setup" ]; then
-    setup_planets
-elif [ "$1" = "issues" ]; then
-    show_issues
-elif [ "$1" = "issue" ]; then
-    # Issue command - must be run from a planet folder
-    current_dir=$(basename "$(pwd)")
-    if [[ ! "$current_dir" =~ ^planet- ]]; then
-        echo -e "${RED}Error: issue must be run from a planet folder${NC}"
-        exit 1
-    fi
-    if [ $# -lt 2 ]; then
-        echo -e "${RED}Error: Missing issue number${NC}"
-        echo -e "Usage: ${GREEN}ss issue <number>${NC}"
-        exit 1
-    fi
-    issue_num=$2
-    agent_cmd="${DEFAULT_AGENT:-claude}"
-
-    # Determine humanized planet name and emoji
-    planet_name="${current_dir#planet-}"
-    human_name="$(tr '[:lower:]' '[:upper:]' <<< "${planet_name:0:1}")${planet_name:1}"
-    case "$planet_name" in
-        "mercury") emoji="⬜️" ;;
-        "venus")   emoji="🟨" ;;
-        "earth")   emoji="🟦" ;;
-        "mars")    emoji="🟥" ;;
-        *)         emoji="🪐" ;;
-    esac
-    
-    echo -e "🤖 ${BLUE}Running agent for issue #${issue_num}...${NC}"
-    $agent_cmd --name "$emoji $human_name #$issue_num" "/issue $issue_num"
-elif [ "$1" = "sync" ]; then
-    sync_issues
-elif [ "$1" = "symlink" ]; then
-    symlink_shared
-elif [ "$1" = "prs" ]; then
-    # PRs command
-    if [ $# -lt 2 ]; then
-        # No PR number provided, list PRs
-        list_prs
-    else
-        # PR number provided, checkout the PR
-        pr_number=$2
-        space=${3:-earth}  # Default to "earth" if not provided
-        if [[ ! "$space" =~ ^(mercury|venus|earth|mars)$ ]]; then
-            echo -e "${RED}Error: Invalid planet name. Use: mercury, venus, earth, or mars${NC}"
-            exit 1
-        fi
-        checkout_pr "$pr_number" "$space"
-    fi
-elif [ "$1" = "agent" ]; then
-    # Agent command - must be run from a planet folder
-    current_dir=$(basename "$(pwd)")
-    if [[ ! "$current_dir" =~ ^planet- ]]; then
-        echo -e "${RED}Error: agent must be run from a planet folder${NC}"
-        exit 1
-    fi
-
-    agent_args=""
-    if [ $# -ge 3 ]; then
-        item_type=$2
-        item_number=$3
-        if [[ "$item_type" =~ ^(issue|pr)$ ]]; then
-            agent_args="focus on gh ${item_type} ${item_number}"
-        else
-            echo -e "${RED}Error: Invalid type '${item_type}'. Use: issue or pr${NC}"
-            exit 1
-        fi
-    fi
-
-    # Run agent (use DEFAULT_AGENT from launch.sh, or fall back to claude)
-    agent_cmd="${DEFAULT_AGENT:-claude}"
-
-    # Determine humanized planet name and emoji
-    planet_name="${current_dir#planet-}"
-    human_name="$(tr '[:lower:]' '[:upper:]' <<< "${planet_name:0:1}")${planet_name:1}"
-    case "$planet_name" in
-        "mercury") emoji="⬜️" ;;
-        "venus")   emoji="🟨" ;;
-        "earth")   emoji="🟦" ;;
-        "mars")    emoji="🟥" ;;
-        *)         emoji="🪐" ;;
-    esac
-
-    if [ -n "$agent_args" ]; then
-        echo -e "🤖 ${BLUE}Running agent...${NC}"
-        # If it's an issue command, append issue number to the name
-        if [[ "$agent_args" == *"issue"* ]]; then
-            issue_num=$(echo "$agent_args" | grep -oE '[0-9]+' | head -1)
-            $agent_cmd --name "$emoji $human_name #$issue_num" "$agent_args"
-        else
-            $agent_cmd --name "$emoji $human_name" "$agent_args"
-        fi
-    else
-        echo -e "🤖 ${BLUE}Running agent...${NC}"
-        $agent_cmd --name "$emoji $human_name"
-    fi
-elif [ "$1" = "reset" ]; then
-    # Reset command - must be run from a planet folder
-    current_dir=$(basename "$(pwd)")
-    if [[ ! "$current_dir" =~ ^planet- ]]; then
-        echo -e "${RED}Error: reset must be run from a planet folder${NC}"
-        exit 1
-    fi
-    echo -e "🔄 ${BLUE}Resetting ${current_dir}...${NC}"
-    reset_planet
-elif [ "$1" = "land" ]; then
-    # Land command - open editor in current planet folder
-    current_dir=$(basename "$(pwd)")
-    if [[ ! "$current_dir" =~ ^planet- ]]; then
-        echo -e "${RED}Error: land must be run from a planet folder${NC}"
-        exit 1
-    fi
-    echo -e "🪐 ${BLUE}Opening ${current_dir} in $EDITOR...${NC}"
-    $EDITOR "$(pwd)"
-elif [ "$1" = "config" ]; then
-    # Show configuration
-    echo -e "${BLUE}Configuration:${NC}"
-    echo -e "  ${GREEN}REPO${NC}              $REPO"
-    echo -e "  ${GREEN}SPACESTATION_DIR${NC}  $SPACESTATION_DIR"
-    echo -e "  ${GREEN}EDITOR${NC}            $EDITOR"
-    echo ""
-    echo -e "${BLUE}Paths:${NC}"
-    echo -e "  ${GREEN}Config file${NC}       $CONFIG_FILE"
-    echo -e "  ${GREEN}Launch script${NC}     $SPACESTATION_DIR/launch.sh"
-    echo -e "  ${GREEN}Planet init${NC}       $INIT_SCRIPT"
-    echo -e "  ${GREEN}Shared dir${NC}        $SPACESTATION_DIR/shared"
-elif [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-    echo -e "${YELLOW}Usage:${NC}"
-    echo -e "  ${GREEN}ss${NC}                        Launch Space Station shell (default)"
-    echo -e "  ${GREEN}ss list|ls|status${NC}          Show status of all planets"
-    echo -e "  ${GREEN}ss init${NC}                   Initialize environment (create config files)"
-    echo -e "  ${GREEN}ss setup${NC}                  Setup/create all planets, install deps, link shared files"
-    echo -e "  ${GREEN}ss symlink${NC}                Symlink all files from ./shared to all planets"
-    echo -e "  ${GREEN}ss issues${NC}                 Show open issues assigned to you"
-    echo -e "  ${GREEN}ss issue <number>${NC}         Open agent with issue prompt"
-    echo -e "  ${GREEN}ss sync${NC}                   Sync GitHub issues to todo.md"
-    echo -e "  ${GREEN}ss prs${NC}                    List open PRs (authored by you or awaiting review)"
-    echo -e "  ${GREEN}ss prs <number> [planet]${NC}  Checkout PR in a planet (default: earth)"
-    echo -e "  ${GREEN}ss agent [issue|pr <number>]${NC}"
-    echo -e "                              Run agent (from planet folder), optionally with issue/pr context"
-    echo -e "  ${GREEN}ss land${NC}                   Open current planet in editor (from planet folder)"
-    echo -e "  ${GREEN}ss reset${NC}                  Reset current planet to latest main (from planet folder)"
-    echo -e "  ${GREEN}ss [earth|e|mercury|my|venus|v|mars|ms]${NC} Reset and open planet"
-    echo -e "  ${GREEN}ss config${NC}                 Show current configuration"
-    echo -e "  ${GREEN}ss help${NC}                   Show this help message"
 else
-    # Handle planet commands (full names or abbreviations)
-    case "$1" in
-        earth|e|c)    open_planet "earth" ;;
-        mercury|my|a) open_planet "mercury" ;;
-        venus|v|b)    open_planet "venus" ;;
-        mars|ms|d)    open_planet "mars" ;;
-        *)
-            echo -e "${RED}Error: Unknown command '$1'${NC}"
-            echo -e "Run ${GREEN}ss help${NC} for usage information"
-            exit 1
-            ;;
-    esac
+    # Delegate everything else to Bun
+    bun run "$SCRIPT_DIR/src/index.ts" "$@"
 fi
+

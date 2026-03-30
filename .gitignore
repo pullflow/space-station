@@ -10,3 +10,11 @@
 !README.md
 !LICENSE
 !migrate-planets.sh
+
+# Bun and TypeScript
+!src/
+!src/**
+!package.json
+!bun.lockb
+!tsconfig.json
+!ss.json

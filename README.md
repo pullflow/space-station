@@ -1,227 +1,98 @@
 # 🛸 Space Station
 
-Manage multiple parallel clones of a repository for simultaneous feature development.
+**Space Station** is a high-performance development orchestrator designed to manage multiple parallel repository environments ("Planets") on a single machine. It is built for engineers and AI agents who need to work on multiple branches, PRs, or features simultaneously without environment contention.
 
-## Why Planets?
+By leveraging **Dynamic Port Mapping**, Space Station allows you to run entire infrastructure stacks (Databases, Proxies, Apps) in parallel, isolated by their own network "lanes."
 
-Instead of constantly switching branches, Space Station lets you work on multiple features/PRs simultaneously by maintaining separate clones (planets):
+---
 
-```
-space-station/
-├── planet-mercury/  # Working on feature X
-├── planet-venus/    # Reviewing PR Y
-├── planet-earth/    # Always on main branch 🌍
-├── planet-mars/     # Bug fix Z
-└── shared/          # Shared env files (symlinked to all planets)
-```
+## 🏗️ Architecture: Hub & Planets
 
-## Setup
+Space Station uses a "Hub and Planet" model to manage your project:
 
-### Step 1: Clone Space Station
+*   **The Hub (`.hub/`)**: The central repository that acts as the single source of truth for your project.
+*   **The Planets (`earth/`, `mars/`, etc.)**: Lightweight, linked working directories. Each planet is a full working environment where you can run and test code independently.
+*   **Isolated Infrastructure**: Each planet is assigned a unique `BASE_PORT` (e.g., Earth = 10000, Mars = 11000). All services (Postgres, Caddy, Vite) run on ports derived from this base, ensuring zero conflicts.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Installation
+Ensure you have [Bun](https://bun.sh) installed, then clone this repository and install dependencies:
 
 ```bash
-cd ~/your-project-folder
-git clone https://github.com/pullflow/space-station.git
 cd space-station
+bun install
 ```
 
-### Step 2: Initialize Configuration
+### 2. Initialization
+Run the interactive setup to point Space Station to your target repository:
 
 ```bash
 ./ss init
 ```
+*   **REPO**: Your GitHub repository (e.g., `owner/repo`).
+*   **SPACESTATION_DIR**: The absolute path where your planets will live.
 
-This creates `ss.conf` and `planet-init.sh` from examples.
-
-### Step 3: Configure
-
-Edit `ss.conf`:
-```bash
-REPO="owner/repo-name"           # Your GitHub repo
-SPACESTATION_DIR="/path/to/space-station"
-EDITOR="cursor"                   # Your preferred editor
-```
-
-Edit `planet-init.sh` for your project's setup commands (e.g., `pnpm install`).
-
-### Step 4: Add Shared Files
-
-Copy your env files to `./shared/`:
-```bash
-cp /path/to/.env.local ./shared/
-cp /path/to/.env.production.local ./shared/
-```
-
-Any files here will be symlinked to all planets.
-
-### Step 5: Setup Planets
+### 3. Orchestration
+Launch your universe of planets:
 
 ```bash
 ./ss setup
 ```
+This will:
+1.  Initialize your Hub.
+2.  Create your defined planets (default: `mercury`, `venus`, `earth`, `mars`).
+3.  Generate planet-specific `.env.local` files with isolated ports.
+4.  Symlink shared resources from your `shared/` folder.
 
-This clones 4 copies of your repo (planet-mercury through planet-mars) and symlinks shared files.
+---
 
-### Step 6: Launch
+## 🛰️ The "Multi-Planet" Workflow
 
+### Per-Planet Ports (The `ss-env` Pattern)
+To ensure your app runs on the correct isolated port for its planet, all commands should be wrapped in an environment loader (e.g., `run-env` or `ss-env`). 
+
+Space Station writes your isolated ports (like `BASE_PORT`, `POSTGRES_PORT`, etc.) into each planet's `.env.local`. When you run:
 ```bash
-./ss
+./run-env bun run dev
+```
+The app will automatically start on its assigned "lane" (e.g., `10823` for Earth), allowing you to run 4+ copies of your entire stack simultaneously.
+
+### Common Commands
+*   **`ss status`**: View the current branch and Git status of all planets.
+*   **`ss prs`**: Interactively list and checkout PRs to a specific planet.
+*   **`ss <planet>`**: Instantly reset a planet to `main` and open it in your editor.
+*   **`ss agent <type> <number>`**: Launch an AI agent with the context of a specific Issue or PR.
+
+---
+
+## 🛠️ Customization
+
+### Configuration (`ss.json`)
+You can customize your universe in `ss.json`:
+```json
+{
+  "PLANETS": ["mercury", "venus", "earth", "mars", "jupiter"],
+  "BASE_PORT": 8000,
+  "PORT_STEP": 1000,
+  "EDITOR": "cursor"
+}
 ```
 
-You're now in the Space Station shell with 🛸 in your prompt. All commands below work as shortcuts.
+### Templating
+Place any `.template` file in `shared/templates/` (e.g., `Caddyfile.template`). During `ss setup`, these will be processed into every planet, replacing variables like:
+*   `{{PLANET_NAME}}`
+*   `{{PLANET_INDEX}}`
+*   `{{BASE_PORT}}`
+*   `{{POSTGRES_PORT}}` (and other standard offsets)
 
-## Commands
+---
 
-Inside the Space Station shell, these shortcuts are available:
+## 🌌 Why Space Station?
+Modern development with AI agents creates a bottleneck: **testing**. If an agent is working in your only working tree, you can't test their work without stopping yours. 
 
-| Command | Description |
-|---------|-------------|
-| `list` | Show status of all planets (branch, changes, PR info) |
-| `mercury` / `venus` / `earth` / `mars` | Open a planet in your editor |
-| `pr` | List open PRs (authored by you or awaiting review) |
-| `pr <number> [planet]` | Checkout PR in a planet (default: earth) |
-| `reset <planet>` | Reset a planet to latest main |
-| `issues` | Show open issues assigned to you |
-| `symlink` | Symlink all files from ./shared to all planets |
-| `agent` | Launch Claude CLI |
-| `config` | Show current configuration |
-| `help` | Show all available commands |
+**Space Station solves this.** It gives every agent their own planet, their own database, and their own public URL, allowing you to verify their progress in real-time while you continue to lead the mission from the bridge.
 
-All commands also work with `ss` prefix (e.g., `ss list`, `ss pr 123 a`).
-
-## Status Output
-
-When you run `list` (or `ss list`), you'll see:
-
-```
-🛸 Space Station
-
-🌑 planet-mercury: feature-branch [🔧Active:3] PR#123(OPEN) ✓2/⧗1/✗0 ✓Checks
-🌕 planet-venus: main [✨Available] No PR
-...
-```
-
-- **🔧Active:N** - N uncommitted changes
-- **✨Available** - Clean git status
-- **PR#N** - Associated pull request
-- **✓/⧗/✗** - Approved/Pending/Changes Requested reviews
-- **Checks** - CI status (✓ passing, ✗ failing, ⧗ pending)
-
-## Shared Files
-
-All planets share the same files via symlinks. Any file you place in `./shared/` will be symlinked to all planets:
-
-```
-shared/
-├── .env.local
-├── .env.production.local
-└── any-other-file.json
-```
-
-Edit once in `shared/`, changes apply to all planets. Run `ss symlink` anytime to re-link files.
-
-## Workflow Example
-
-```bash
-# Check what's available
-list                     # See all planets at a glance
-
-# Start work on a new PR
-pr 456 mercury           # Checkout PR #456 in planet-mercury
-mercury                  # Open planet-mercury in editor
-
-# While waiting for review, work on something else
-pr 789 venus             # Checkout PR #789 in planet-venus
-venus                    # Open planet-venus in editor
-
-# Need AI help? Launch Claude in any planet directory
-agent                    # Starts claude CLI
-
-# Check status again
-list
-
-# Done with a PR? Reset the planet
-reset mercury            # Reset planet-mercury to main
-```
-
-## Prerequisites
-
-The `ss setup` command will check for these dependencies and help you install them:
-
-- **git** - `brew install git`
-- **gh** (GitHub CLI) - `brew install gh && gh auth login`
-- **jq** - `brew install jq`
-- An editor (defaults to [Cursor](https://cursor.sh/))
-
-## Custom Project Setup
-
-Create `planet-init.sh` to define how planets are initialized (runs after checkout/setup):
-
-```bash
-cp planet-init.sh.example planet-init.sh
-# Edit planet-init.sh for your project
-```
-
-Example for Node.js/pnpm:
-```bash
-pnpm install
-pnpm build
-```
-
-Example for Python:
-```bash
-pip install -r requirements.txt
-```
-
-## Space Station Shell
-
-Running `./ss` starts a subshell with:
-
-- 🛸 emoji in your prompt (works with Starship)
-- All shortcuts available (`list`, `pr`, `a`, `b`, `agent`, etc.)
-- Your normal shell config (`.zshrc`) is loaded first
-
-### Customizing with launch.sh
-
-The `launch.sh` file is sourced when you enter the Space Station shell. Edit it to add your own shortcuts:
-
-```bash
-# launch.sh
-
-# Agent configuration (default: claude)
-export AGENT="claude"
-alias agent="$AGENT"
-
-# Add your own project-specific shortcuts
-alias dev="pnpm dev"
-alias test="pnpm test"
-alias logs="tail -f ./logs/dev.log"
-```
-
-The default `launch.sh` includes:
-- `agent`, `resume`, `cont` - Claude CLI aliases
-- `list`, `pr`, `issues`, `reset`, etc. - All ss subcommands
-- `mercury`, `venus`, `earth`, `mars` - Planet shortcuts
-
-## Recommended Terminal Layout
-
-Use your terminal's split view to create a 2x2 grid for maximum productivity:
-
-```
-┌─────────────────┬─────────────────┐
-│  ss             │  planet-mercury │
-│  (command hub)  │  (feature work) │
-├─────────────────┼─────────────────┤
-│  planet-earth   │  planet-venus   │
-│  (main branch)  │  (PR review)    │
-└─────────────────┴─────────────────┘
-```
-
-- **Top-left**: `ss` - your command hub for status checks and navigation
-- **Bottom-left**: `planet-earth` - always on main for quick reference
-- **Top-right**: `planet-mercury` - active feature development
-- **Bottom-right**: `planet-venus` - PR review or second task
-
-## License
-
-MIT - see [LICENSE](LICENSE)
+Safe travels, commander. 🛸
