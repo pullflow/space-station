@@ -6,12 +6,19 @@ import { colors } from '../ui/theme';
 import { run } from '../utils/shell';
 import { initHub, addWorktree, fetchHub } from '../utils/git';
 import { getPlanetPorts } from '../utils/ports';
+import { checkSystemDependencies } from '../utils/dependencies';
 
 export async function setupCommand(config: Config, projectRoot: string) {
   const repoUrl = `https://github.com/${config.REPO}.git`;
   const hubDir = join(config.SPACESTATION_DIR, '.hub');
   
   intro(colors.primary('Orchestrating the Space Station Hub (Worktree Environment)'));
+
+  // 0. Verify System Dependencies
+  if (!await checkSystemDependencies()) {
+    outro(colors.error('Missing required system dependencies. Setup aborted.'));
+    return;
+  }
 
   const s = spinner();
 

@@ -15,6 +15,7 @@ import { agentCommand } from './commands/agent';
 import { resetCommand } from './commands/reset';
 import { landCommand } from './commands/land';
 import { planetCommand } from './commands/planet';
+import { consoleCommand } from './commands/console';
 import { getPlanets } from './utils/planets';
 
 const program = new Command();
@@ -34,6 +35,14 @@ async function main() {
     .action(async () => {
       const config = loadConfig(projectRoot);
       await statusCommand(config);
+    });
+
+  program
+    .command('console')
+    .description('Launch the Space Station Command Center (iTerm2 + Tmux)')
+    .action(async () => {
+      const config = loadConfig(projectRoot);
+      await consoleCommand(config, projectRoot);
     });
 
   program
@@ -146,6 +155,7 @@ async function main() {
     const choice = await select({
       message: 'What would you like to do?',
       options: [
+        { value: 'console', label: '🛰️  Open Command Center (iTerm + Tmux)' },
         { value: 'status', label: '📊 Show status' },
         { value: 'prs', label: '🔀 Manage PRs' },
         { value: 'issues', label: '📋 View Issues' },
@@ -172,6 +182,7 @@ async function main() {
       return;
     }
 
+    if (choice === 'console') await consoleCommand(config, projectRoot);
     if (choice === 'status') await statusCommand(config);
     if (choice === 'prs') await prsCommand(config, projectRoot);
     if (choice === 'issues') await issuesCommand(config);

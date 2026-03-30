@@ -11,6 +11,12 @@
 !LICENSE
 !migrate-planets.sh
 
+# Space Station Core Configuration
+!tmux.conf
+!iterm2/
+!iterm2/**
+!setup-iterm2.sh
+
 # Bun and TypeScript
 !src/
 !src/**

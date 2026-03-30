@@ -42,10 +42,18 @@ Launch your universe of planets:
 ./ss setup
 ```
 This will:
-1.  Initialize your Hub.
-2.  Create your defined planets (default: `mercury`, `venus`, `earth`, `mars`).
-3.  Generate planet-specific `.env.local` files with isolated ports.
-4.  Symlink shared resources from your `shared/` folder.
+1.  **Verify System Dependencies**: Automatically check for and install `Homebrew`, `Tmux`, `iTerm2`, and `Nerd Fonts` (Mac only).
+2.  **Configure iTerm2**: Link your iTerm2 to the project's opinionated, transparent "Space" theme.
+3.  **Initialize Hub & Planets**: Create your defined planets and generate isolated `.env.local` files.
+4.  **Symlink Shared Resources**: Sync files from your `shared/` folder to all planets.
+
+### 4. Launch the Command Center
+Once setup is complete, enter the bridge:
+
+```bash
+./ss console
+```
+This opens a new **iTerm2** window using the Space Station profile, starts a **Tmux** session with our local configuration, and launches the interactive menu. This is the recommended way to manage your parallel universes.
 
 ---
 
