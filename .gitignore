@@ -4,9 +4,20 @@
 # Track these files
 !.gitignore
 !ss
-!ss.conf.example
+!bridge-launch.sh
+!ss.yaml.example
 !planet-init.sh.example
-!launch.sh
 !README.md
 !LICENSE
-!migrate-planets.sh
+# Space Station Core Configuration
+!resources/
+!resources/**
+resources/plugins/
+
+# Bun and TypeScript
+!src/
+!src/**
+!package.json
+!bun.lock
+!tsconfig.json
+!CLAUDE.md

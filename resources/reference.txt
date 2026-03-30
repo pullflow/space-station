@@ -1,0 +1,18 @@
+🛸  Space Station — Reference
+
+TMUX
+  prefix + hjkl     Navigate panes
+  prefix + %  "     Split pane
+  prefix + p / n    Previous / next window
+  prefix + r        Reload config
+  prefix + I        Install plugins
+  prefix + d        Detach session
+  tmux a            Re-attach
+
+SS COMMANDS
+  ss prs            Browse & checkout PRs
+  ss issues         View assigned issues
+  ss status         Planet status overview
+  ss <planet>       Jump to a planet
+  ss reset          Reset planet to main
+  ss setup          Re-run setup
