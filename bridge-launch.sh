@@ -37,15 +37,22 @@ $TMUX kill-session -t "$SESSION" 2>/dev/null
 #   Pane 1 (top-right): agent in planet 1
 #   Pane 2 (bot-left):  agent in planet 2
 #   Pane 3 (bot-right): agent in planet 3
-$TMUX \
-  new-session -d -s "$SESSION" -n "Mission Control" -c "$PROJECT_ROOT" \; \
-  send-keys -t "$SESSION":0.0 "cat $PROJECT_ROOT/resources/reference.txt; echo; read" Enter \; \
-  split-window -h -t "$SESSION":0.0 -c "$P1_DIR" \; \
-  send-keys -t "$SESSION":0.1 "$AGENT_CMD" Enter \; \
-  split-window -v -t "$SESSION":0.0 -c "$P2_DIR" \; \
-  send-keys -t "$SESSION":0.2 "$AGENT_CMD" Enter \; \
-  split-window -v -t "$SESSION":0.1 -c "$P3_DIR" \; \
-  send-keys -t "$SESSION":0.3 "$AGENT_CMD" Enter \; \
-  select-layout -t "$SESSION":0 tiled \; \
-  select-pane -t "$SESSION":0.0 \; \
-  attach-session -t "$SESSION"
+# Create session with pane 0 (top-left: reference card)
+$TMUX new-session -d -s "$SESSION" -n "Mission Control" -c "$PROJECT_ROOT"
+$TMUX send-keys -t "$SESSION":0.0 "cat $PROJECT_ROOT/resources/reference.txt; echo; read" Enter
+
+# Pane 1 (top-right: planet 1)
+PANE1=$($TMUX split-window -h -P -F "#{pane_id}" -t "$SESSION":0.0 -c "$P1_DIR")
+$TMUX send-keys -t "$PANE1" "$AGENT_CMD" Enter
+
+# Pane 2 (bottom-left: planet 2)
+PANE2=$($TMUX split-window -v -P -F "#{pane_id}" -t "$SESSION":0.0 -c "$P2_DIR")
+$TMUX send-keys -t "$PANE2" "$AGENT_CMD" Enter
+
+# Pane 3 (bottom-right: planet 3)
+PANE3=$($TMUX split-window -v -P -F "#{pane_id}" -t "$PANE1" -c "$P3_DIR")
+$TMUX send-keys -t "$PANE3" "$AGENT_CMD" Enter
+
+$TMUX select-layout -t "$SESSION":0 tiled
+$TMUX select-pane -t "$SESSION":0.0
+$TMUX attach-session -t "$SESSION"
