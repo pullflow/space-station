@@ -4,7 +4,7 @@
 # Track these files
 !.gitignore
 !ss
-!ss.conf.example
+!ss.yaml.example
 !planet-init.sh.example
 !launch.sh
 !README.md
@@ -15,6 +15,6 @@
 !src/
 !src/**
 !package.json
-!bun.lockb
+!bun.lock
 !tsconfig.json
-!ss.json
+!CLAUDE.md

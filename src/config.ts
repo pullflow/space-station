@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { parse, stringify } from 'yaml';
 
 export const ConfigSchema = z.object({
   REPO: z.string().describe('The GitHub repository in owner/repo format'),
@@ -17,29 +18,23 @@ export const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
-const CONFIG_FILENAME = 'ss.json';
-const LEGACY_CONFIG_FILENAME = 'ss.conf';
+const CONFIG_FILENAME = 'ss.yaml';
 
 export function loadConfig(projectRoot: string): Config {
-  const jsonPath = join(projectRoot, CONFIG_FILENAME);
-  const legacyPath = join(projectRoot, LEGACY_CONFIG_FILENAME);
+  const yamlPath = join(projectRoot, CONFIG_FILENAME);
+
+  if (!existsSync(yamlPath)) {
+    throw new Error(`${CONFIG_FILENAME} not found. Please run \`ss init\` first.`);
+  }
 
   let rawConfig: any = {};
 
-  if (existsSync(jsonPath)) {
-    try {
-      rawConfig = JSON.parse(readFileSync(jsonPath, 'utf8'));
-    } catch (e) {
-      console.error(`Error parsing ${CONFIG_FILENAME}:`, e);
-    }
-  } else if (existsSync(legacyPath)) {
-    const content = readFileSync(legacyPath, 'utf8');
-    content.split('\n').forEach(line => {
-      const match = line.match(/^([A-Z_]+)="?([^"]*)"?$/);
-      if (match) {
-        rawConfig[match[1]] = match[2];
-      }
-    });
+  try {
+    const content = readFileSync(yamlPath, 'utf8');
+    rawConfig = parse(content);
+  } catch (e) {
+    console.error(`Error parsing ${CONFIG_FILENAME}:`, e);
+    throw new Error(`Failed to parse ${CONFIG_FILENAME}`);
   }
 
   if (rawConfig.SPACESTATION_DIR && rawConfig.SPACESTATION_DIR.startsWith('~')) {
@@ -50,13 +45,14 @@ export function loadConfig(projectRoot: string): Config {
 
   const result = ConfigSchema.safeParse(rawConfig);
   if (!result.success) {
-    throw new Error(`Invalid configuration: ${result.error.message}`);
+    throw new Error(`Invalid configuration in ${CONFIG_FILENAME}: ${result.error.message}`);
   }
 
   return result.data;
 }
 
 export function saveConfig(projectRoot: string, config: Config) {
-  const jsonPath = join(projectRoot, CONFIG_FILENAME);
-  writeFileSync(jsonPath, JSON.stringify(config, null, 2), 'utf8');
+  const yamlPath = join(projectRoot, CONFIG_FILENAME);
+  const yamlString = stringify(config);
+  writeFileSync(yamlPath, yamlString, 'utf8');
 }
