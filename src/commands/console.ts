@@ -32,28 +32,28 @@ export async function consoleCommand(config: Config, projectRoot: string) {
   const gridCommands = [];
   if (planets.length >= 1) {
     const p1Dir = join(ssDir, planets[0]);
-    gridCommands.push(`tmux send-keys -t ${sessionName}:1.0 "cd ${p1Dir} && clear" C-m`);
+    gridCommands.push(`tmux -f ${tmuxConfig} send-keys -t ${sessionName}:1.0 "cd ${p1Dir} && clear" C-m`);
   }
 
   if (planets.length >= 2) {
     const p2Dir = join(ssDir, planets[1]);
-    gridCommands.push(`tmux split-window -h -t ${sessionName}:1.0 "cd ${p2Dir} && clear && exec $SHELL"`);
+    gridCommands.push(`tmux -f ${tmuxConfig} split-window -h -t ${sessionName}:1.0 "cd ${p2Dir} && clear && exec $SHELL"`);
   }
 
   if (planets.length >= 3) {
     const p3Dir = join(ssDir, planets[2]);
-    gridCommands.push(`tmux split-window -v -t ${sessionName}:1.0 "cd ${p3Dir} && clear && exec $SHELL"`);
+    gridCommands.push(`tmux -f ${tmuxConfig} split-window -v -t ${sessionName}:1.0 "cd ${p3Dir} && clear && exec $SHELL"`);
   }
 
   if (planets.length >= 4) {
     const p4Dir = join(ssDir, planets[3]);
-    gridCommands.push(`tmux split-window -v -t ${sessionName}:1.1 "cd ${p4Dir} && clear && exec $SHELL"`);
+    gridCommands.push(`tmux -f ${tmuxConfig} split-window -v -t ${sessionName}:1.1 "cd ${p4Dir} && clear && exec $SHELL"`);
   }
 
   const finalizeCommand = [
     ...gridCommands,
-    `tmux select-window -t ${sessionName}:0`,
-    `tmux attach-session -t ${sessionName}`
+    `tmux -f ${tmuxConfig} select-window -t ${sessionName}:0`,
+    `tmux -f ${tmuxConfig} attach-session -t ${sessionName}`
   ].join('; ');
 
   const fullCommand = `${setupCommand}; ${finalizeCommand}`;
