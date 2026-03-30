@@ -4,6 +4,54 @@ import { colors } from '../ui/theme';
 import { join, basename } from 'path';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 
+export interface Dependency {
+  name: string;
+  command: string;
+  versionCommand: string;
+  hint: string;
+  required: boolean;
+}
+
+export const DEPENDENCIES: Dependency[] = [
+  {
+    name: 'Homebrew',
+    command: 'brew',
+    versionCommand: 'brew --version',
+    hint: 'Install from https://brew.sh',
+    required: true,
+  },
+  {
+    name: 'Git',
+    command: 'git',
+    versionCommand: 'git --version',
+    hint: 'Install from https://git-scm.com',
+    required: true,
+  },
+  {
+    name: 'Bun',
+    command: 'bun',
+    versionCommand: 'bun --version',
+    hint: 'Install from https://bun.sh',
+    required: true,
+  },
+  {
+    name: 'Tmux',
+    command: 'tmux',
+    versionCommand: 'tmux -V',
+    hint: 'Install via brew install tmux',
+    required: false,
+  },
+];
+
+export async function checkDependency(dep: Dependency) {
+  const { exitCode, stdout } = await run('which', [dep.command]);
+  if (exitCode !== 0) {
+    return { installed: false, version: '' };
+  }
+  const versionInfo = await run(dep.versionCommand.split(' ')[0], dep.versionCommand.split(' ').slice(1));
+  return { installed: true, version: versionInfo.stdout.split('\n')[0] };
+}
+
 export async function checkSystemDependencies() {
   const s = spinner();
   const projectRoot = process.cwd();
@@ -45,7 +93,6 @@ export async function checkSystemDependencies() {
     const families = new Set<string>();
     fontPaths.forEach(p => {
       const b = basename(p).replace(/\.(ttf|otf)$/i, '');
-      // Clean up common suffixes to guess the family name iTerm2 likes
       const family = b.split('-')[0].split(' ')[0];
       if (family) families.add(family);
     });
@@ -61,7 +108,6 @@ export async function checkSystemDependencies() {
     if (isCancel(choice)) return false;
 
     if (choice !== 'default') {
-      // Find a specific regular-style font file for this family to guess the iTerm2 string
       const matchedPath = fontPaths.find(p => p.includes(choice as string) && (p.toLowerCase().includes('regular') || p.toLowerCase().includes('mono')));
       if (matchedPath) {
         selectedFont = basename(matchedPath).replace(/\.(ttf|otf)$/i, '');
@@ -83,7 +129,6 @@ export async function checkSystemDependencies() {
 
   if (existsSync(plistPath)) {
     let plistContent = readFileSync(plistPath, 'utf8');
-    // Inject the selected font and size (defaulting to 14)
     plistContent = plistContent.replace(
       /<key>Normal Font<\/key>\s*<string>.*<\/string>/,
       `<key>Normal Font</key>\n\t\t\t<string>${selectedFont} 14</string>`
