@@ -1,5 +1,5 @@
 import { spinner } from '@clack/prompts';
-import { Config } from '../config';
+import type { Config } from '../config';
 import { colors } from '../ui/theme';
 import { basename } from 'path';
 import { run } from '../utils/shell';
@@ -13,9 +13,9 @@ export async function landCommand(config: Config) {
   }
 
   const s = spinner();
-  s.start(`Opening ${currentDir} in ${config.EDITOR}...`);
+  s.start(`Opening ${currentDir} in ${config.editor}...`);
   
-  await run(config.EDITOR, ['.'], process.cwd());
+  await run(config.editor, ['.'], process.cwd());
   
   s.stop(colors.success(`Landed on ${currentDir}!`));
 }

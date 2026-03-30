@@ -2,7 +2,11 @@
   "name": "space-station",
   "module": "index.ts",
   "type": "module",
+  "version": "0.2.0",
   "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/figlet": "^1.7.0",

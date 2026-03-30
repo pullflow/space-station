@@ -3,8 +3,11 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 
 export async function getBranch(cwd: string): Promise<string> {
-  const { stdout } = await run('git', ['branch', '--show-current'], cwd);
-  return stdout || 'unknown';
+  const { stdout: branch } = await run('git', ['branch', '--show-current'], cwd);
+  if (branch) return branch;
+
+  const { stdout: hash } = await run('git', ['rev-parse', '--short', 'HEAD'], cwd);
+  return hash ? `(detached at ${hash})` : 'unknown';
 }
 
 export async function getStatus(cwd: string): Promise<string> {
@@ -22,6 +25,11 @@ export async function initHub(repoUrl: string, hubDir: string): Promise<number> 
 }
 
 export async function addWorktree(hubDir: string, planetDir: string, branch: string = 'main'): Promise<number> {
+  const { exitCode } = await addWorktreeFull(hubDir, planetDir, branch);
+  return exitCode;
+}
+
+async function addWorktreeFull(hubDir: string, planetDir: string, branch: string = 'main') {
   // Check if branch exists in hub, if not create it from origin
   const { exitCode: branchCheck } = await run('git', ['rev-parse', '--verify', branch], hubDir);
   
@@ -29,8 +37,7 @@ export async function addWorktree(hubDir: string, planetDir: string, branch: str
     await run('git', ['branch', branch, `origin/${branch}`], hubDir);
   }
 
-  const { exitCode } = await run('git', ['worktree', 'add', planetDir, branch], hubDir);
-  return exitCode;
+  return await run('git', ['worktree', 'add', '--detach', planetDir, branch], hubDir);
 }
 
 export async function removeWorktree(hubDir: string, planetDir: string): Promise<void> {

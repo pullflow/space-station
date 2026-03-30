@@ -4,18 +4,15 @@
 # Track these files
 !.gitignore
 !ss
+!bridge-launch.sh
 !ss.yaml.example
 !planet-init.sh.example
-!launch.sh
 !README.md
 !LICENSE
-!migrate-planets.sh
-
 # Space Station Core Configuration
-!tmux.conf
-!iterm2/
-!iterm2/**
-!setup-iterm2.sh
+!resources/
+!resources/**
+resources/plugins/
 
 # Bun and TypeScript
 !src/
@@ -24,4 +21,3 @@
 !bun.lock
 !tsconfig.json
 !CLAUDE.md
-!bridge-launch.sh

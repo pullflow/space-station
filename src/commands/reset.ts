@@ -1,5 +1,5 @@
 import { spinner, note, confirm, isCancel } from '@clack/prompts';
-import { Config } from '../config';
+import type { Config } from '../config';
 import { colors } from '../ui/theme';
 import { basename } from 'path';
 import { getStatus, checkout, pull } from '../utils/git';

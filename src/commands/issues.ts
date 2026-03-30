@@ -1,5 +1,5 @@
 import { intro, spinner, note, outro } from '@clack/prompts';
-import { Config } from '../config';
+import type { Config } from '../config';
 import { colors } from '../ui/theme';
 import { listIssues } from '../utils/github';
 import { join } from 'path';
@@ -10,7 +10,7 @@ export async function issuesCommand(config: Config) {
   
   const s = spinner();
   s.start('Fetching issues from the universe...');
-  const issues = await listIssues(config.REPO);
+  const issues = await listIssues(config.repo);
   s.stop('Issues fetched');
 
   if (issues.length === 0) {
@@ -29,7 +29,7 @@ export async function issuesCommand(config: Config) {
 }
 
 export async function syncIssuesCommand(config: Config) {
-  const todoFile = join(config.SPACESTATION_DIR, 'todo.md');
+  const todoFile = join(config.spacestation_dir, 'todo.md');
   if (!existsSync(todoFile)) {
     note(colors.error(`todo.md not found at ${todoFile}`), 'Error');
     return;
@@ -39,7 +39,7 @@ export async function syncIssuesCommand(config: Config) {
   
   const s = spinner();
   s.start('Fetching latest issues...');
-  const issues = await listIssues(config.REPO);
+  const issues = await listIssues(config.repo);
   s.stop('Issues fetched');
 
   const content = readFileSync(todoFile, 'utf8');

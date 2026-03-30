@@ -1,7 +1,7 @@
 import { run } from './shell';
 import { spinner, select, isCancel } from '@clack/prompts';
 import { colors } from '../ui/theme';
-import { join, basename } from 'path';
+import { join } from 'path';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 
 export interface Dependency {
@@ -48,15 +48,14 @@ export async function checkDependency(dep: Dependency) {
   if (exitCode !== 0) {
     return { installed: false, version: '' };
   }
-  const versionInfo = await run(dep.versionCommand.split(' ')[0], dep.versionCommand.split(' ').slice(1));
+  const versionInfo = await run(dep.versionCommand.split(' ')[0] ?? dep.versionCommand, dep.versionCommand.split(' ').slice(1));
   return { installed: true, version: versionInfo.stdout.split('\n')[0] };
 }
 
-export async function checkSystemDependencies() {
+export async function checkSystemDependencies(projectRoot: string) {
   const s = spinner();
-  const projectRoot = process.cwd();
 
-  s.start('Checking system dependencies (Homebrew, Tmux, iTerm2)...');
+  s.start('Checking system dependencies...');
 
   // 1. Check for Homebrew
   const brewCheck = await run('which', ['brew']);
@@ -65,90 +64,40 @@ export async function checkSystemDependencies() {
     return false;
   }
 
-  // 2. Check and Install Tmux
+  // 2. Check and install Tmux
   const tmuxCheck = await run('which', ['tmux']);
   if (tmuxCheck.exitCode !== 0) {
     s.message('Installing tmux via Homebrew...');
     await run('brew', ['install', 'tmux']);
   }
 
-  // 3. Check and Install iTerm2
-  const itermCheck = await run('ls', ['-d', '/Applications/iTerm.app']);
-  if (itermCheck.exitCode !== 0) {
-    s.message('Installing iTerm2 via Homebrew Cask...');
-    await run('brew', ['install', '--cask', 'iterm2']);
-  }
   s.stop(colors.success('Core tools verified.'));
 
-  // 4. Handle Nerd Font Selection/Installation
-  s.start('Searching for Nerd Fonts...');
-  const fontCheck = await run('mdfind', ['kind:font', '"Nerd Font"']);
-  const fontPaths = fontCheck.stdout.split('\n').filter(p => p.trim() !== '');
-  s.stop(colors.success(`Found ${fontPaths.length} Nerd Font files.`));
+  // 3. Install bundled Nerd Fonts
+  const fontsDir = join(projectRoot, 'resources', 'fonts');
+  const bundledFonts = existsSync(fontsDir)
+    ? readdirSync(fontsDir).filter(f => f.match(/\.(ttf|otf)$/i))
+    : [];
 
-  let selectedFont = 'JetBrainsMonoNerdFontComplete-Regular';
-
-  if (fontPaths.length > 0) {
-    // Extract unique family names from paths (approximation)
-    const families = new Set<string>();
-    fontPaths.forEach(p => {
-      const b = basename(p).replace(/\.(ttf|otf)$/i, '');
-      const family = b.split('-')[0].split(' ')[0];
-      if (family) families.add(family);
-    });
+  if (bundledFonts.length > 0) {
+    const families = [...new Set(bundledFonts.map(f => f.replace(/\.(ttf|otf)$/i, '').split('-')[0]))].filter((f): f is string => f !== undefined);
 
     const choice = await select({
-      message: 'Which Nerd Font would you like to use for the Space Station?',
-      options: [
-        { value: 'default', label: '🚀 Install/Use JetBrains Mono Nerd Font (Recommended)' },
-        ...Array.from(families).map(f => ({ value: f, label: `󰛖  Use existing: ${f}` }))
-      ]
+      message: 'Which Nerd Font would you like to use?',
+      options: families.map(f => ({ value: f, label: f })),
     });
 
     if (isCancel(choice)) return false;
 
-    if (choice !== 'default') {
-      const matchedPath = fontPaths.find(p => p.includes(choice as string) && (p.toLowerCase().includes('regular') || p.toLowerCase().includes('mono')));
-      if (matchedPath) {
-        selectedFont = basename(matchedPath).replace(/\.(ttf|otf)$/i, '');
-      } else {
-        selectedFont = choice as string;
-      }
-    } else {
-      await installDefaultFont(s);
+    s.start('Installing bundled Nerd Fonts...');
+    const userFontsDir = join(process.env.HOME ?? '', 'Library', 'Fonts');
+    if (!existsSync(userFontsDir)) mkdirSync(userFontsDir, { recursive: true });
+    for (const font of bundledFonts) {
+      const dest = join(userFontsDir, font);
+      if (!existsSync(dest)) writeFileSync(dest, readFileSync(join(fontsDir, font)));
     }
-  } else {
-    s.message('No Nerd Fonts detected.');
-    await installDefaultFont(s);
+    s.stop(colors.success('Fonts installed.'));
   }
 
-  // 5. Configure iTerm2 Preferences Folder & Selected Font
-  s.start('Configuring iTerm2 with your preferences...');
-  const iterm2Folder = join(projectRoot, 'iterm2');
-  const plistPath = join(iterm2Folder, 'com.googlecode.iterm2.plist');
-
-  if (existsSync(plistPath)) {
-    let plistContent = readFileSync(plistPath, 'utf8');
-    plistContent = plistContent.replace(
-      /<key>Normal Font<\/key>\s*<string>.*<\/string>/,
-      `<key>Normal Font</key>\n\t\t\t<string>${selectedFont} 14</string>`
-    );
-    writeFileSync(plistPath, plistContent);
-  }
-  
-  await run('defaults', ['write', 'com.googlecode.iterm2.plist', 'PrefsCustomFolder', '-string', iterm2Folder]);
-  await run('defaults', ['write', 'com.googlecode.iterm2.plist', 'LoadPrefsFromCustomFolder', '-bool', 'true']);
-  await run('defaults', ['write', 'com.googlecode.iterm2.plist', 'NoSyncNeverRemindPrefsChangesLostForFile', '-bool', 'true']);
-
-  s.stop(colors.success(`System dependencies and iTerm2 linked using "${selectedFont}". 🚀`));
   return true;
-}
-
-async function installDefaultFont(s: any) {
-  s.message('Ensuring JetBrains Mono Nerd Font is installed...');
-  const brewCheck = await run('brew', ['list', '--cask', 'font-jetbrains-mono-nerd-font']);
-  if (brewCheck.exitCode !== 0) {
-    await run('brew', ['tap', 'homebrew/cask-fonts']);
-    await run('brew', ['install', '--cask', 'font-jetbrains-mono-nerd-font']);
-  }
 }

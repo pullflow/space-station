@@ -1,7 +1,8 @@
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { symbols } from '../ui/theme';
-import { Config } from '../config';
+import type { Config } from '../config';
+import { getPlanetsDir } from '../config';
 
 export interface Planet {
   name: string;
@@ -32,10 +33,10 @@ const PLANET_EMOJIS: { [key: string]: string } = {
 };
 
 export function getPlanets(config: Config): Planet[] {
-  const baseDir = config.SPACESTATION_DIR;
+  const baseDir = getPlanetsDir(config);
   if (!existsSync(baseDir)) return [];
   
-  const planetsFromConfig = config.PLANETS.map(p => p.toLowerCase());
+  const planetsFromConfig = config.planets.map(p => p.toLowerCase());
   
   return readdirSync(baseDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory() && planetsFromConfig.includes(dirent.name.toLowerCase()))

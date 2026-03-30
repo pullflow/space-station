@@ -1,14 +1,14 @@
-import { Config } from '../config';
+import type { Config } from '../config';
 
 export interface PortMap {
   [key: string]: number;
 }
 
 export function getPlanetPorts(config: Config, planetName: string): PortMap {
-  const index = config.PLANETS.indexOf(planetName.toLowerCase());
+  const index = config.planets.indexOf(planetName.toLowerCase());
   const planetIndex = index === -1 ? 0 : index;
   
-  const start = config.BASE_PORT + (planetIndex * config.PORT_STEP);
+  const start = config.base_port + (planetIndex * config.port_step);
 
   // We provide a generic "Port Map" based on standard common offsets.
   // A project can ignore these and use math based on BASE_PORT in templates.

@@ -1,7 +1,8 @@
 import { intro, outro, spinner, note } from '@clack/prompts';
 import { existsSync, mkdirSync, readdirSync, symlinkSync, rmSync, lstatSync, readFileSync, writeFileSync } from 'fs';
 import { join, relative } from 'path';
-import { Config } from '../config';
+import type { Config } from '../config';
+import { getPlanetsDir } from '../config';
 import { colors } from '../ui/theme';
 import { run } from '../utils/shell';
 import { initHub, addWorktree, fetchHub } from '../utils/git';
@@ -9,13 +10,18 @@ import { getPlanetPorts } from '../utils/ports';
 import { checkSystemDependencies } from '../utils/dependencies';
 
 export async function setupCommand(config: Config, projectRoot: string) {
-  const repoUrl = `https://github.com/${config.REPO}.git`;
-  const hubDir = join(config.SPACESTATION_DIR, '.hub');
+  const repoUrl = `https://github.com/${config.repo}.git`;
+  const planetsDir = getPlanetsDir(config);
+  const hubDir = join(planetsDir, '.hub');
+
+  if (!existsSync(planetsDir)) {
+    mkdirSync(planetsDir, { recursive: true });
+  }
   
   intro(colors.primary('Orchestrating the Space Station Hub (Worktree Environment)'));
 
   // 0. Verify System Dependencies
-  if (!await checkSystemDependencies()) {
+  if (!await checkSystemDependencies(projectRoot)) {
     outro(colors.error('Missing required system dependencies. Setup aborted.'));
     return;
   }
@@ -38,8 +44,8 @@ export async function setupCommand(config: Config, projectRoot: string) {
   }
 
   // 2. Setup Worktrees for each planet defined in config
-  for (const planetName of config.PLANETS) {
-    const planetDir = join(config.SPACESTATION_DIR, planetName);
+  for (const planetName of config.planets) {
+    const planetDir = join(planetsDir, planetName);
     
     s.start(`Preparing ${planetName}...`);
     
@@ -78,7 +84,7 @@ async function configurePlanet(config: Config, planetName: string, planetDir: st
   
   // 1. Handle .env.local (Crucial for infrastructure ports)
   const envPath = join(planetDir, '.env.local');
-  const sharedTemplatePath = join(config.SPACESTATION_DIR, 'shared', '.env.local.template');
+  const sharedTemplatePath = join(projectRoot, 'shared', '.env.local.template');
   
   let envContent = '';
   if (existsSync(sharedTemplatePath)) {
@@ -113,13 +119,13 @@ async function configurePlanet(config: Config, planetName: string, planetDir: st
   
   // Replace templated variables {{VAR}}
   envContent = envContent.replace(/{{PLANET_NAME}}/g, planetName);
-  envContent = envContent.replace(/{{PLANET_INDEX}}/g, ports.PLANET_INDEX.toString());
-  envContent = envContent.replace(/{{BASE_PORT}}/g, ports.BASE_PORT.toString());
+  envContent = envContent.replace(/{{PLANET_INDEX}}/g, (ports.PLANET_INDEX ?? 0).toString());
+  envContent = envContent.replace(/{{BASE_PORT}}/g, (ports.BASE_PORT ?? 0).toString());
   
   writeFileSync(envPath, envContent);
 
   // 2. Handle generic templates in /shared/templates
-  const templateDir = join(config.SPACESTATION_DIR, 'shared', 'templates');
+  const templateDir = join(projectRoot, 'shared', 'templates');
   if (existsSync(templateDir)) {
     const templates = readdirSync(templateDir);
     
@@ -130,8 +136,8 @@ async function configurePlanet(config: Config, planetName: string, planetDir: st
         
         // Universal template replacements
         content = content.replace(/{{PLANET_NAME}}/g, planetName);
-        content = content.replace(/{{PLANET_INDEX}}/g, ports.PLANET_INDEX.toString());
-        content = content.replace(/{{BASE_PORT}}/g, ports.BASE_PORT.toString());
+        content = content.replace(/{{PLANET_INDEX}}/g, (ports.PLANET_INDEX ?? 0).toString());
+        content = content.replace(/{{BASE_PORT}}/g, (ports.BASE_PORT ?? 0).toString());
         
         // Also replace specific ports
         for (const [key, val] of Object.entries(ports)) {
@@ -150,14 +156,21 @@ export async function symlinkSharedCommand(config: Config) {
 }
 
 async function symlinkShared(config: Config) {
-  const sharedDir = join(config.SPACESTATION_DIR, 'shared');
+  const sharedDir = join(config.spacestation_dir, 'shared');
   if (!existsSync(sharedDir)) return;
 
   const s = spinner();
   s.start('Symlinking shared resources...');
 
-  const planets = readdirSync(config.SPACESTATION_DIR)
-    .filter(d => config.PLANETS.map(p => p.toLowerCase()).includes(d.toLowerCase()) && lstatSync(join(config.SPACESTATION_DIR, d)).isDirectory());
+  const planetsDir = getPlanetsDir(config);
+  if (!existsSync(planetsDir)) {
+    s.stop(colors.error('Planets directory not found. Please run `ss setup` first.'));
+    return;
+  }
+
+  const planetNames = new Set(config.planets.map(p => p.toLowerCase()));
+  const planets = readdirSync(planetsDir)
+    .filter(d => planetNames.has(d.toLowerCase()) && lstatSync(join(planetsDir, d)).isDirectory());
 
   const sharedFiles = readdirSync(sharedDir).filter(f => 
     f !== '.keep' && 
@@ -167,7 +180,7 @@ async function symlinkShared(config: Config) {
   );
 
   for (const planet of planets) {
-    const planetPath = join(config.SPACESTATION_DIR, planet);
+    const planetPath = join(planetsDir, planet);
     
     for (const file of sharedFiles) {
       const targetPath = join(planetPath, file);

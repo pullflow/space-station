@@ -1,5 +1,5 @@
 import { spinner, note } from '@clack/prompts';
-import { Config } from '../config';
+import type { Config } from '../config';
 import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
 import { listPRs } from '../utils/github';
@@ -10,7 +10,7 @@ export async function statusCommand(config: Config) {
   s.start('Scanning the universe...');
   
   const planets = getPlanets(config);
-  const prs = await listPRs(config.REPO, 'all');
+  const prs = await listPRs(config.repo, 'all');
   
   s.stop('Universe scan complete');
 

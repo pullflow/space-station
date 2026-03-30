@@ -1,7 +1,8 @@
 import { intro, outro, text, confirm, isCancel, spinner, note, select } from '@clack/prompts';
 import { existsSync, copyFileSync, chmodSync } from 'fs';
 import { join } from 'path';
-import { saveConfig, Config } from '../config';
+import type { Config } from '../config';
+import { saveConfig, getPlanetsDir } from '../config';
 import { colors } from '../ui/theme';
 import { DEPENDENCIES, checkDependency } from '../utils/dependencies';
 import { PLANET_NAMES } from '../utils/planets';
@@ -45,7 +46,7 @@ export async function initCommand(projectRoot: string) {
     message: 'What is your GitHub repository? (owner/repo)',
     placeholder: 'e.g. pullflow/coagency',
     validate: (value) => {
-      if (!value.includes('/')) return 'Please enter in owner/repo format';
+      if (!value?.includes('/')) return 'Please enter in owner/repo format';
     }
   });
   if (isCancel(repo)) return;
@@ -70,13 +71,13 @@ export async function initCommand(projectRoot: string) {
   const planetCount = parseInt(planetCountStr as string);
 
   const config: Config = {
-    REPO: repo as string,
-    SPACESTATION_DIR: ssDir as string,
-    EDITOR: 'cursor',
-    DEFAULT_AGENT: 'claude',
-    PLANETS: PLANET_NAMES.slice(0, planetCount),
-    BASE_PORT: 8000,
-    PORT_STEP: 1000,
+    repo: repo as string,
+    spacestation_dir: ssDir as string,
+    editor: 'cursor',
+    default_agent: 'claude',
+    planets: PLANET_NAMES.slice(0, planetCount),
+    base_port: 8000,
+    port_step: 1000,
   };
 
   saveConfig(projectRoot, config);
@@ -96,7 +97,7 @@ export async function initCommand(projectRoot: string) {
     chmodSync(initScript, 0o755);
   }
 
-  note(`Planets: ${config.PLANETS.join(', ')}\nHub: ${join(config.SPACESTATION_DIR, '.hub')}`, 'Configuration Saved');
+  note(`Planets: ${config.planets.join(', ')}\nHub: ${join(getPlanetsDir(config), '.hub')}`, 'Configuration Saved');
 
   // 4. Offer Setup
   const shouldSetup = await confirm({
