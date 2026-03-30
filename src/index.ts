@@ -39,6 +39,8 @@ async function main() {
 
   program
     .command('console')
+    .alias('cc')
+    .alias('bridge')
     .description('Launch the Space Station Command Center (iTerm2 + Tmux)')
     .action(async () => {
       const config = loadConfig(projectRoot);
@@ -150,7 +152,7 @@ async function main() {
   if (process.argv.length <= 2) {
     const logo = await getAsciiLogo();
     console.log(logo);
-    intro(colors.primary('Welcome to Space Station'));
+    intro(colors.primary('Welcome to Space Station v2.0.0 🛰️'));
     
     const choice = await select({
       message: 'What would you like to do?',
