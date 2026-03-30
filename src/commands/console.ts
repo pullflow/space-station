@@ -14,50 +14,56 @@ export async function consoleCommand(config: Config, projectRoot: string) {
   const ssBinary = join(projectRoot, 'ss');
   const sessionName = 'SpaceStation';
 
-  // We'll build a script to set up the 2x2 grid
-  // Window 0: The Interactive Menu
-  // Window 1: The Planet Grid (2x2)
-  
-  const planets = config.PLANETS; // Ordered nearest to sun: mercury, venus, earth, mars
+  const planets = config.PLANETS;
   const ssDir = config.SPACESTATION_DIR.replace(/^~/, process.env.HOME || '');
 
-  // Construct tmux commands for the 2x2 grid in window 1
-  const tmuxCommands = [
-    `new-session -d -s ${sessionName} -n "Menu" "${ssBinary}"`,
-    `new-window -t ${sessionName}:1 -n "Planets"`,
-  ];
+  // We'll use a single shell string to:
+  // 1. Kill any existing session
+  // 2. Start a new detached session
+  // 3. Orchestrate windows and panes
+  // 4. Finally attach
+  
+  const setupCommand = [
+    `tmux -f ${tmuxConfig} kill-session -t ${sessionName} 2>/dev/null`,
+    `tmux -f ${tmuxConfig} new-session -d -s ${sessionName} -n "Menu" "${ssBinary}"`,
+    `tmux -f ${tmuxConfig} new-window -t ${sessionName}:1 -n "Planets"`,
+  ].join('; ');
 
+  const gridCommands = [];
   if (planets.length >= 1) {
     const p1Dir = join(ssDir, planets[0]);
-    tmuxCommands.push(`send-keys -t ${sessionName}:1.0 "cd ${p1Dir} && clear" C-m`);
+    gridCommands.push(`tmux send-keys -t ${sessionName}:1.0 "cd ${p1Dir} && clear" C-m`);
   }
 
   if (planets.length >= 2) {
     const p2Dir = join(ssDir, planets[1]);
-    tmuxCommands.push(`split-window -h -t ${sessionName}:1.0 "cd ${p2Dir} && clear && exec $SHELL"`);
+    gridCommands.push(`tmux split-window -h -t ${sessionName}:1.0 "cd ${p2Dir} && clear && exec $SHELL"`);
   }
 
   if (planets.length >= 3) {
     const p3Dir = join(ssDir, planets[2]);
-    tmuxCommands.push(`split-window -v -t ${sessionName}:1.0 "cd ${p3Dir} && clear && exec $SHELL"`);
+    gridCommands.push(`tmux split-window -v -t ${sessionName}:1.0 "cd ${p3Dir} && clear && exec $SHELL"`);
   }
 
   if (planets.length >= 4) {
     const p4Dir = join(ssDir, planets[3]);
-    tmuxCommands.push(`split-window -v -t ${sessionName}:1.1 "cd ${p4Dir} && clear && exec $SHELL"`);
+    gridCommands.push(`tmux split-window -v -t ${sessionName}:1.1 "cd ${p4Dir} && clear && exec $SHELL"`);
   }
 
-  // Ensure we select the first window (the menu) on launch
-  tmuxCommands.push(`select-window -t ${sessionName}:0`);
+  const finalizeCommand = [
+    ...gridCommands,
+    `tmux select-window -t ${sessionName}:0`,
+    `tmux attach-session -t ${sessionName}`
+  ].join('; ');
 
-  const fullTmuxCommand = `tmux -f ${tmuxConfig} ${tmuxCommands.join(' \\; ')}`;
+  const fullCommand = `${setupCommand}; ${finalizeCommand}`;
 
   const appleScript = `
     tell application "iTerm"
       activate
       set newWindow to (create window with default profile)
       tell current session of newWindow
-        write text "${fullTmuxCommand.replace(/"/g, '\\"')}"
+        write text "${fullCommand.replace(/"/g, '\\"')}"
       end tell
     end tell
   `;
