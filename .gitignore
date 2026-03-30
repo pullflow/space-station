@@ -24,3 +24,4 @@
 !bun.lock
 !tsconfig.json
 !CLAUDE.md
+!bridge-launch.sh
