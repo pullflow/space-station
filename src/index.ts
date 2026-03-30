@@ -3,7 +3,7 @@ import { intro, outro, select, isCancel } from '@clack/prompts';
 import { getAsciiLogo } from './ui/ascii';
 import { colors, symbols } from './ui/theme';
 import { loadConfig } from './config';
-import { join } from 'path';
+import { join, basename } from 'path';
 
 // Command imports
 import { statusCommand } from './commands/status';
@@ -15,13 +15,12 @@ import { agentCommand } from './commands/agent';
 import { resetCommand } from './commands/reset';
 import { landCommand } from './commands/land';
 import { planetCommand } from './commands/planet';
+import { getPlanets } from './utils/planets';
 
 const program = new Command();
 const projectRoot = process.cwd();
 
 async function main() {
-  const logo = await getAsciiLogo();
-  
   program
     .name('ss')
     .description('🛸 Space Station - Manage multiple parallel repo clones')
@@ -108,6 +107,21 @@ async function main() {
       await landCommand(config);
     });
 
+  program
+    .command('prompt')
+    .description('Return the symbol for the current planet (for shell integration)')
+    .action(async () => {
+      try {
+        const config = loadConfig(projectRoot);
+        const planets = getPlanets(config);
+        const currentDir = basename(process.cwd()).toLowerCase();
+        const currentPlanet = planets.find(p => p.name === currentDir);
+        process.stdout.write(currentPlanet ? currentPlanet.emoji : '🛸');
+      } catch (e) {
+        process.stdout.write('🛸');
+      }
+    });
+
   // Load config once for dynamic planet commands
   let config;
   try {
@@ -121,12 +135,11 @@ async function main() {
           await planetCommand(config, p);
         });
     });
-  } catch (e) {
-    // Config doesn't exist yet, that's fine for 'init'
-  }
+  } catch (e) {}
 
-  // Default action: Interactive menu or status
-  program.action(async () => {
+  // If no arguments, show interactive menu
+  if (process.argv.length <= 2) {
+    const logo = await getAsciiLogo();
     console.log(logo);
     intro(colors.primary('Welcome to Space Station'));
     
@@ -167,7 +180,8 @@ async function main() {
     if (choice === 'setup') await setupCommand(config, projectRoot);
     
     outro('Mission accomplished! 🚀');
-  });
+    return;
+  }
 
   await program.parseAsync(process.argv);
 }
