@@ -56,7 +56,7 @@ export async function dockCommand(config: Config) {
     const pr = prs.find(p => p.headRefName === branch);
     const prStr = pr ? colors.info(`PR#${pr.number}`) : pc.dim('no PR');
     console.log(
-      `  ${planet.emoji} ${planetColor(planet.name.padEnd(10))} ${pc.dim(branch.slice(0, 22).padEnd(22))} ${stateStr.padEnd(14)} ${prStr}`
+      `  ${planetColor(planet.name.padEnd(10))} ${pc.dim(branch.slice(0, 22).padEnd(22))} ${stateStr.padEnd(14)} ${prStr}`
     );
   }
 
@@ -95,7 +95,6 @@ export async function dockCommand(config: Config) {
     ['ss reset <planet>', 'Reset planet to main'],
     ['ss console', 'Relaunch console'],
     ['prefix + hjkl', 'Navigate panes'],
-    ['prefix + I', 'Install/update plugins'],
     ['prefix + r', 'Reload tmux config'],
   ];
   for (const [key, desc] of shortcuts) {

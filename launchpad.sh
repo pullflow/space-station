@@ -14,10 +14,6 @@ PLUGINS_DIR="$PROJECT_ROOT/resources/plugins"
 SESSION="SpaceStation"
 SOCKET="SpaceStation"
 
-# Bootstrap TPM if not present
-if [ ! -d "$PLUGINS_DIR/tpm" ]; then
-  git clone https://github.com/tmux-plugins/tpm "$PLUGINS_DIR/tpm"
-fi
 
 IFS=',' read -ra PLANETS <<< "$PLANETS_JSON"
 P1_DIR="$PLANETS_DIR/${PLANETS[0]}"
