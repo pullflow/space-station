@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, symlinkSync, rmSync, lstatSync, rea
 import { join, relative } from 'path';
 import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
-import { colors } from '../ui/theme';
+import { colors, symbols } from '../ui/theme';
 import { run } from '../utils/shell';
 import { initHub, addWorktree, fetchHub } from '../utils/git';
 import { getPlanetPorts } from '../utils/ports';
@@ -166,12 +166,21 @@ export async function linkPlanet(
     join(planetDir, 'space-station-init.sh'),
     join(planetDir, 'scripts', 'space-station-init.sh'),
   ];
-  const setupHook = hookCandidates.find(existsSync);
+  const setupHook = hookCandidates.find(h => existsSync(h));
   if (setupHook) {
-    s?.message(`Running space-station-init.sh for ${planetName}...`);
-    await run('bash', [setupHook], planetDir, {
+    s?.message(`${colors.dim(`${symbols.agent} Running planet hook...`)}`);
+    const { exitCode, stdout, stderr } = await run('bash', [setupHook], planetDir, {
       env: { ...process.env, PLANET_DIR: planetDir, SS_ROOT: projectRoot },
     });
+    
+    if (exitCode !== 0) {
+      console.error(colors.error(`\n${symbols.error} Hook failed for ${planetName} (exit ${exitCode}):`));
+      if (stdout) console.log(colors.dim(stdout));
+      if (stderr) console.error(colors.error(stderr));
+    } else if (stdout) {
+      const lastLine = stdout.split('\n').filter(l => l.trim()).pop();
+      if (lastLine) s?.message(`${colors.dim(`${symbols.success} ${lastLine}`)}`);
+    }
   }
 
   // 5. Handle generic templates in shared/templates
