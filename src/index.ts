@@ -12,8 +12,6 @@ import { setupCommand, symlinkSharedCommand } from './commands/setup';
 import { prsCommand } from './commands/prs';
 import { issuesCommand } from './commands/issues';
 import { resetCommand } from './commands/reset';
-import { landCommand } from './commands/land';
-import { planetCommand } from './commands/planet';
 import { consoleCommand } from './commands/console';
 
 const program = new Command();
@@ -85,34 +83,18 @@ async function main() {
     });
 
   program
-    .command('reset')
-    .description('Reset current planet to latest main')
-    .action(async () => {
+    .command('reset [planet]')
+    .description('Reset a planet to latest main')
+    .option('-f, --force', 'Reset even if the planet has uncommitted changes')
+    .action(async (planet, opts) => {
       const config = loadConfig(projectRoot);
-      await resetCommand(config);
-    });
-
-  program
-    .command('land')
-    .description('Open current planet in editor')
-    .action(async () => {
-      const config = loadConfig(projectRoot);
-      await landCommand(config);
+      await resetCommand(config, projectRoot, planet, opts.force ?? false);
     });
 
   // Load config once for dynamic planet commands
   let config: ReturnType<typeof loadConfig> | undefined;
   try {
     config = loadConfig(projectRoot);
-    // Planet shortcuts based on config
-    config.planets.forEach(p => {
-      program
-        .command(p)
-        .description(`Reset and open ${p}`)
-        .action(async () => {
-          await planetCommand(config!, p);
-        });
-    });
   } catch (e) {}
 
   // If no arguments, show interactive menu
