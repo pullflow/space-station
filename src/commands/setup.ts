@@ -1,4 +1,4 @@
-import { intro, outro, spinner } from '@clack/prompts';
+import { intro, outro, spinner, note } from '@clack/prompts';
 import { existsSync, mkdirSync, readdirSync, symlinkSync, rmSync, lstatSync, readFileSync, writeFileSync } from 'fs';
 import { join, relative } from 'path';
 import type { Config } from '../config';
@@ -70,6 +70,31 @@ export async function setupCommand(config: Config, projectRoot: string) {
 
   // 4. Symlink space-station shared/ files into all planets
   await symlinkShared(config);
+
+  // 5. Next steps guidance
+  const planetsDir2 = getPlanetsDir(config);
+  note(
+    [
+      `${colors.success('1.')} Add a setup hook to your repo for planet-specific init:`,
+      `   Create ${colors.dim('space-station-init.sh')} (or ${colors.dim('scripts/space-station-init.sh')}) — SS runs it`,
+      `   after dropping ${colors.dim('.env.planet')} into each planet.`,
+      ``,
+      `   ${colors.dim('Example — rewrite port in .env.local:')}`,
+      `   ${colors.dim('#!/usr/bin/env bash')}`,
+      `   ${colors.dim('source "$PLANET_DIR/.env.planet"')}`,
+      colors.dim('   sed -i.bak "s/^PORT=.*/PORT=${SS_PLANET_BASE_PORT}/" .env.local'),
+      ``,
+      `${colors.success('2.')} Share files across all planets via ${colors.dim('planets/_shared/')}:`,
+      `   ${colors.dim(join(planetsDir2, '_shared'))}`,
+      `   Anything placed here is symlinked into every planet on setup/reset.`,
+      ``,
+      `${colors.success('3.')} Key commands:`,
+      `   ${colors.dim('ss list')}           Show all planets and branches`,
+      `   ${colors.dim('ss reset <planet>')}  Re-link a planet (re-runs your init hook)`,
+      `   ${colors.dim('ss dock')}           Open the dashboard`,
+    ].join('\n'),
+    'Next Steps'
+  );
 
   outro(colors.primary('Infrastructure mission complete. Ready for parallel operations. 🛰️'));
 }
