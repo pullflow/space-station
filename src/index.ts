@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { intro, outro, select, isCancel } from '@clack/prompts';
 import { getAsciiLogo } from './ui/ascii';
 import { colors, symbols } from './ui/theme';
-import { loadConfig } from './config';
+import { loadConfig, findProjectRoot } from './config';
 import { join } from 'path';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -17,11 +17,13 @@ import { issuesCommand } from './commands/issues';
 import { resetCommand } from './commands/reset';
 import { consoleCommand } from './commands/console';
 import { dockCommand } from './commands/dock';
+import { agentCommand } from './commands/agent';
 
 const program = new Command();
-const projectRoot = process.cwd();
 
 async function main() {
+  const projectRoot = findProjectRoot();
+
   program
     .name('ss')
     .description(`${symbols.loading} Space Station - Manage multiple parallel repo clones`)
@@ -101,6 +103,16 @@ async function main() {
     .action(async (planet, opts) => {
       const config = loadConfig(projectRoot);
       await resetCommand(config, projectRoot, planet, opts.force ?? false);
+    });
+
+  program
+    .command('agent [planet]')
+    .alias('ag')
+    .alias('a')
+    .description('Launch agent on a planet (auto-detects if in planet folder)')
+    .action(async (planet) => {
+      const config = loadConfig(projectRoot);
+      await agentCommand(config, planet);
     });
 
   // Load config once for dynamic planet commands

@@ -22,12 +22,13 @@ export async function run(
   return { stdout: stdout.trim(), stderr: stderr.trim(), exitCode };
 }
 
-export async function runInteractive(cmd: string, args: string[] = [], cwd?: string): Promise<number> {
+export async function runInteractive(cmd: string, args: string[] = [], cwd?: string, options?: RunOptions): Promise<number> {
   const proc = Bun.spawn([cmd, ...args], {
     cwd,
     stdin: 'inherit',
     stdout: 'inherit',
     stderr: 'inherit',
+    env: options?.env as Record<string, string> | undefined,
   });
 
   return await proc.exited;
