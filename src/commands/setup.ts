@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, symlinkSync, rmSync, lstatSync, rea
 import { join, relative } from 'path';
 import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
-import { colors, symbols, planetHexColors } from '../ui/theme';
+import { colors, symbols, planetColors } from '../ui/theme';
 import { run } from '../utils/shell';
 import { initHub, addWorktree, fetchHub } from '../utils/git';
 import { getPlanetPorts } from '../utils/ports';
@@ -114,11 +114,11 @@ export async function linkPlanet(
 
   // 1. Write .env.planet
   const envPlanetPath = join(planetDir, '.env.planet');
-  const planetColor = planetHexColors[planetName] || planetHexColors.unknown;
+  const planetColorName = planetColors[planetName] || planetColors.unknown;
   writeFileSync(envPlanetPath, [
     `SS_PLANET_NAME=${planetName}`,
     `SS_PLANET_BASE_PORT=${ports.BASE_PORT}`,
-    `SS_PLANET_COLOR=${planetColor}`,
+    `SS_PLANET_COLOR=${planetColorName}`,
     `SS_BASE_PATH=${planetDir}`,
     `SS_ROOT_PATH=${projectRoot}`,
   ].join('\n') + '\n');

@@ -1,19 +1,17 @@
 import pc from 'picocolors';
 import gradient from 'gradient-string';
 
-export const planetHexColors: Record<string, string> = {
-  mercury: '#e5e5e5',
-  venus: '#e3bb76',
-  earth: '#2271b3',
-  mars: '#e27b58',
-  jupiter: '#c99039',
-  saturn: '#c5ab6e',
-  uranus: '#bbe1e4',
-  neptune: '#6081ff',
-  unknown: '#a855f7',
+export const planetColors: Record<string, string> = {
+  mercury: 'white',
+  venus: 'yellow',
+  earth: 'blue',
+  mars: 'red',
+  jupiter: 'magenta',
+  saturn: 'yellow',
+  uranus: 'cyan',
+  neptune: 'blue',
+  unknown: 'magenta',
 };
-
-const hexColor = (hex: string) => (text: string) => gradient([hex, hex])(text);
 
 export const colors = {
   primary: (text: string) => gradient(['#00c6ff', '#0072ff'])(text),
@@ -25,15 +23,15 @@ export const colors = {
   dim: (text: string) => pc.gray(text),
   agent: (text: string) => pc.magenta(text),
   planet: {
-    mercury: hexColor(planetHexColors.mercury),
-    venus: hexColor(planetHexColors.venus),
-    earth: hexColor(planetHexColors.earth),
-    mars: hexColor(planetHexColors.mars),
-    jupiter: hexColor(planetHexColors.jupiter),
-    saturn: hexColor(planetHexColors.saturn),
-    uranus: hexColor(planetHexColors.uranus),
-    neptune: hexColor(planetHexColors.neptune),
-    unknown: hexColor(planetHexColors.unknown),
+    mercury: (text: string) => pc.white(text),
+    venus: (text: string) => pc.yellow(text),
+    earth: (text: string) => pc.blue(text),
+    mars: (text: string) => pc.red(text),
+    jupiter: (text: string) => pc.magenta(text),
+    saturn: (text: string) => pc.yellow(text),
+    uranus: (text: string) => pc.cyan(text),
+    neptune: (text: string) => pc.blue(text),
+    unknown: (text: string) => pc.magenta(text),
   }
 };
 
