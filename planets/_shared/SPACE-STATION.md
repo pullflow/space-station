@@ -50,5 +50,4 @@ Anything in `planets/_shared/` is symlinked into every planet on setup. Edit fil
 ss list          # Show all planets and branches
 ss reset <p>     # Reset a planet to main (re-runs linking)
 ss agent <p>     # Launch agent on a planet
-ss land <p>      # Merge planet's work
 ```
