@@ -1,6 +1,18 @@
 import pc from 'picocolors';
 import gradient from 'gradient-string';
 
+export const planetHexColors: Record<string, string> = {
+  mercury: '#e5e5e5',
+  venus: '#e3bb76',
+  earth: '#2271b3',
+  mars: '#e27b58',
+  jupiter: '#c99039',
+  saturn: '#c5ab6e',
+  uranus: '#bbe1e4',
+  neptune: '#6081ff',
+  unknown: '#a855f7',
+};
+
 export const colors = {
   primary: (text: string) => gradient(['#00c6ff', '#0072ff'])(text),
   secondary: (text: string) => gradient(['#f7971e', '#ffd200'])(text),
