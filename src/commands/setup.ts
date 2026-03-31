@@ -119,6 +119,8 @@ export async function linkPlanet(
     `SS_PLANET_NAME=${planetName}`,
     `SS_PLANET_BASE_PORT=${ports.BASE_PORT}`,
     `SS_PLANET_COLOR=${planetColor}`,
+    `SS_BASE_PATH=${planetDir}`,
+    `SS_ROOT_PATH=${projectRoot}`,
   ].join('\n') + '\n');
 
   // 2. Ensure SS-managed files are gitignored in the planet (using info/exclude to avoid modifying .gitignore)

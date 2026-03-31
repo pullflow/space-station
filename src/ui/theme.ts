@@ -13,6 +13,8 @@ export const planetHexColors: Record<string, string> = {
   unknown: '#a855f7',
 };
 
+const hexColor = (hex: string) => (text: string) => gradient([hex, hex])(text);
+
 export const colors = {
   primary: (text: string) => gradient(['#00c6ff', '#0072ff'])(text),
   secondary: (text: string) => gradient(['#f7971e', '#ffd200'])(text),
@@ -23,15 +25,15 @@ export const colors = {
   dim: (text: string) => pc.gray(text),
   agent: (text: string) => pc.magenta(text),
   planet: {
-    mercury: (text: string) => pc.white(text),
-    venus: (text: string) => pc.yellow(text),
-    earth: (text: string) => pc.blue(text),
-    mars: (text: string) => pc.red(text),
-    jupiter: (text: string) => pc.magenta(text),
-    saturn: (text: string) => pc.yellow(text),
-    uranus: (text: string) => pc.cyan(text),
-    neptune: (text: string) => pc.blue(text),
-    unknown: (text: string) => pc.magenta(text),
+    mercury: hexColor(planetHexColors.mercury),
+    venus: hexColor(planetHexColors.venus),
+    earth: hexColor(planetHexColors.earth),
+    mars: hexColor(planetHexColors.mars),
+    jupiter: hexColor(planetHexColors.jupiter),
+    saturn: hexColor(planetHexColors.saturn),
+    uranus: hexColor(planetHexColors.uranus),
+    neptune: hexColor(planetHexColors.neptune),
+    unknown: hexColor(planetHexColors.unknown),
   }
 };
 
