@@ -4,6 +4,9 @@ import { getAsciiLogo } from './ui/ascii';
 import { colors, symbols } from './ui/theme';
 import { loadConfig } from './config';
 import { join } from 'path';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 // Command imports
 import { statusCommand } from './commands/status';
@@ -22,7 +25,7 @@ async function main() {
   program
     .name('ss')
     .description('🛸 Space Station - Manage multiple parallel repo clones')
-    .version('2.0.0');
+    .version(version);
 
   program
     .command('status')
@@ -110,8 +113,6 @@ async function main() {
   if (process.argv.length <= 2) {
     const logo = await getAsciiLogo();
     console.log(logo);
-    intro(colors.primary('Welcome to Space Station v2.0.0 🛰️'));
-
     // If no config exists, go straight to init (which auto-proceeds to setup)
     if (!config) {
       await initCommand(projectRoot);
