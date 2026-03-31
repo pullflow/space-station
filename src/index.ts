@@ -8,11 +8,12 @@ import { join } from 'path';
 // Command imports
 import { statusCommand } from './commands/status';
 import { initCommand } from './commands/init';
-import { setupCommand, symlinkSharedCommand } from './commands/setup';
+import { setupCommand } from './commands/setup';
 import { prsCommand } from './commands/prs';
 import { issuesCommand } from './commands/issues';
 import { resetCommand } from './commands/reset';
 import { consoleCommand } from './commands/console';
+import { dockCommand } from './commands/dock';
 
 const program = new Command();
 const projectRoot = process.cwd();
@@ -41,6 +42,14 @@ async function main() {
     .action(async () => {
       const config = loadConfig(projectRoot);
       await consoleCommand(config, projectRoot);
+    });
+
+  program
+    .command('dock')
+    .description('Mission dashboard: status, PRs, issues, and shortcuts')
+    .action(async () => {
+      const config = loadConfig(projectRoot);
+      await dockCommand(config);
     });
 
   program
@@ -102,16 +111,20 @@ async function main() {
     const logo = await getAsciiLogo();
     console.log(logo);
     intro(colors.primary('Welcome to Space Station v2.0.0 🛰️'));
-    
+
+    // If no config exists, go straight to init (which auto-proceeds to setup)
+    if (!config) {
+      await initCommand(projectRoot);
+      return;
+    }
+
     const choice = await select({
       message: 'What would you like to do?',
       options: [
+        { value: 'console', label: '🖥️  Launch Console' },
         { value: 'status', label: '📊 Show status' },
         { value: 'prs', label: '🔀 Manage PRs' },
         { value: 'issues', label: '📋 View Issues' },
-        { value: 'symlink', label: '🔗 Symlink shared files' },
-        { value: 'setup', label: '⚙️  Setup Planets' },
-        { value: 'init', label: '🪄  Run Setup Wizard' },
         { value: 'exit', label: '🚪 Exit' },
       ],
     });
@@ -121,21 +134,10 @@ async function main() {
       return;
     }
 
-    if (choice === 'init') {
-      await initCommand(projectRoot);
-      return;
-    }
-
-    if (!config) {
-      console.error(colors.error('Error: Please run `ss init` first.'));
-      return;
-    }
-
+    if (choice === 'console') await consoleCommand(config, projectRoot);
     if (choice === 'status') await statusCommand(config);
     if (choice === 'prs') await prsCommand(config, projectRoot);
     if (choice === 'issues') await issuesCommand(config);
-    if (choice === 'symlink') await symlinkSharedCommand(config);
-    if (choice === 'setup') await setupCommand(config, projectRoot);
     
     outro('Mission accomplished! 🚀');
     return;

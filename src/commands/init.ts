@@ -1,4 +1,4 @@
-import { intro, outro, text, confirm, isCancel, spinner, note, select } from '@clack/prompts';
+import { intro, text, isCancel, spinner, note, select } from '@clack/prompts';
 import { existsSync, copyFileSync, chmodSync } from 'fs';
 import { join } from 'path';
 import type { Config } from '../config';
@@ -99,17 +99,8 @@ export async function initCommand(projectRoot: string) {
 
   note(`Planets: ${config.planets.join(', ')}\nHub: ${join(getPlanetsDir(config), '.hub')}`, 'Configuration Saved');
 
-  // 4. Offer Setup
-  const shouldSetup = await confirm({
-    message: 'Would you like to run the full setup (cloning & orchestration) now?',
-    initialValue: true,
-  });
-
-  if (shouldSetup && !isCancel(shouldSetup)) {
-    await setupCommand(config, projectRoot);
-  } else {
-    outro(colors.info(`Initialization complete! You can run ${colors.success('ss setup')} anytime to launch your universe.`));
-  }
+  // 4. Auto-proceed to Setup
+  await setupCommand(config, projectRoot);
 }
 
 function mkdirSync(dir: string, options: { recursive: boolean }) {

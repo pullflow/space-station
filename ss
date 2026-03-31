@@ -13,6 +13,12 @@ if ! command -v bun &> /dev/null; then
     exit 1
 fi
 
+# Check if packages are installed
+if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
+    echo "📦 Dependencies not installed. Running bun install..."
+    bun install --cwd "$SCRIPT_DIR" || exit 1
+fi
+
 # Delegate all commands to the Bun implementation
 # If no arguments are provided, it will launch the interactive TUI menu
 bun run "$SCRIPT_DIR/src/index.ts" "$@"

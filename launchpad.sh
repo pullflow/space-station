@@ -33,13 +33,13 @@ TMUX="tmux -L $SOCKET -f $RESOLVED_CONF"
 $TMUX kill-session -t "$SESSION" 2>/dev/null
 
 # Single window, 2x2 grid:
-#   Pane 0 (top-left):  SS reference card
+#   Pane 0 (top-left):  ss dock (mission dashboard)
 #   Pane 1 (top-right): agent in planet 1
 #   Pane 2 (bot-left):  agent in planet 2
 #   Pane 3 (bot-right): agent in planet 3
-# Create session with pane 0 (top-left: reference card)
+# Create session with pane 0 (top-left: dock)
 $TMUX new-session -d -s "$SESSION" -n "Mission Control" -c "$PROJECT_ROOT"
-$TMUX send-keys -t "$SESSION":0.0 "cat $PROJECT_ROOT/resources/reference.txt; echo; read" Enter
+$TMUX send-keys -t "$SESSION":0.0 "cd $PROJECT_ROOT && bun run src/index.ts dock" Enter
 
 # Pane 1 (top-right: planet 1)
 PANE1=$($TMUX split-window -h -P -F "#{pane_id}" -t "$SESSION":0.0 -c "$P1_DIR")
