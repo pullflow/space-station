@@ -6,7 +6,13 @@
 !ss
 !bridge-launch.sh
 !ss.yaml.example
-!planet-init.sh.example
+# Track _shared defaults (worktree dirs themselves remain ignored)
+!planets/
+planets/*
+!planets/_shared/
+planets/_shared/*
+!planets/_shared/.gitignore
+!planets/_shared/SPACE-STATION.md
 !README.md
 !LICENSE
 # Space Station Core Configuration
