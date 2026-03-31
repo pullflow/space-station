@@ -40,10 +40,10 @@ export async function prsCommand(config: Config, projectRoot: string, prNumber?:
   const planetChoice = await select({
     message: 'Which planet should this PR land on?',
     options: [
-      { value: 'earth', label: '3️⃣ Earth' },
-      { value: 'mercury', label: '1️⃣ Mercury' },
-      { value: 'venus', label: '2️⃣ Venus' },
-      { value: 'mars', label: '4️⃣ Mars' },
+      { value: 'earth', label: `${symbols.earth} Earth` },
+      { value: 'mercury', label: `${symbols.mercury} Mercury` },
+      { value: 'venus', label: `${symbols.venus} Venus` },
+      { value: 'mars', label: `${symbols.mars} Mars` },
     ],
   });
 

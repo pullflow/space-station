@@ -22,14 +22,14 @@ export const PLANET_NAMES = [
 ];
 
 const PLANET_EMOJIS: { [key: string]: string } = {
-  'mercury': '1️⃣',
-  'venus': '2️⃣',
-  'earth': '3️⃣',
-  'mars': '4️⃣',
-  'jupiter': '5️⃣',
-  'saturn': '6️⃣',
-  'uranus': '7️⃣',
-  'neptune': '8️⃣',
+  'mercury': symbols.mercury,
+  'venus': symbols.venus,
+  'earth': symbols.earth,
+  'mars': symbols.mars,
+  'jupiter': symbols.jupiter,
+  'saturn': symbols.saturn,
+  'uranus': symbols.uranus,
+  'neptune': symbols.neptune,
 };
 
 export function getPlanets(config: Config): Planet[] {
@@ -42,7 +42,7 @@ export function getPlanets(config: Config): Planet[] {
     .filter(dirent => dirent.isDirectory() && planetsFromConfig.includes(dirent.name.toLowerCase()))
     .map(dirent => {
       const name = dirent.name.toLowerCase();
-      const emoji = PLANET_EMOJIS[name] || '🔘';
+      const emoji = PLANET_EMOJIS[name] || symbols.unknown;
       
       return {
         name,

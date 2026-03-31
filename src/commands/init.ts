@@ -6,13 +6,13 @@ const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
 import type { Config } from '../config';
 import { saveConfig, getPlanetsDir } from '../config';
-import { colors } from '../ui/theme';
+import { colors, symbols } from '../ui/theme';
 import { DEPENDENCIES, checkDependency } from '../utils/dependencies';
 import { PLANET_NAMES } from '../utils/planets';
 import { setupCommand } from './setup';
 
 export async function initCommand(projectRoot: string) {
-  intro(colors.primary(`🛸 Welcome to Space Station v${version} — Setup Wizard`));
+  intro(colors.primary(`${symbols.loading} Welcome to Space Station v${version} — Setup Wizard`));
 
   // 1. Dependency Check
   const s = spinner();
@@ -30,9 +30,9 @@ export async function initCommand(projectRoot: string) {
   
   for (const { dep, result } of results) {
     if (result.installed) {
-      depSummary += `${colors.success('✓')} ${dep.name} (${result.version})\n`;
+      depSummary += `${colors.success(symbols.success)} ${dep.name} (${result.version})\n`;
     } else {
-      depSummary += `${colors.error('✗')} ${dep.name} - ${colors.dim(dep.hint)}\n`;
+      depSummary += `${colors.error(symbols.error)} ${dep.name} - ${colors.dim(dep.hint)}\n`;
       if (dep.required) missingRequired = true;
     }
   }

@@ -3,7 +3,7 @@ import type { Config } from '../config';
 import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
 import { listPRs, listIssues } from '../utils/github';
-import { colors } from '../ui/theme';
+import { colors, symbols } from '../ui/theme';
 import pc from 'picocolors';
 
 function section(title: string) {
@@ -21,9 +21,9 @@ export async function dockCommand(config: Config) {
   // Header
   console.clear();
   console.log('');
-  console.log(colors.primary('  ╔══════════════════════════════════════╗'));
-  console.log(colors.primary('  ║       SPACE STATION — DOCK           ║'));
-  console.log(colors.primary('  ╚══════════════════════════════════════╝'));
+  console.log(colors.primary('  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓'));
+  console.log(colors.primary('  ┃       SPACE STATION — DOCK           ┃'));
+  console.log(colors.primary('  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛'));
 
   const s = spinner();
   s.start('Loading mission data...');
@@ -51,12 +51,12 @@ export async function dockCommand(config: Config) {
     const dirty = statuses[i];
     const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
     const stateStr = dirty
-      ? colors.warning('● active')
-      : colors.success('○ free');
+      ? colors.warning(`${symbols.warning} active`)
+      : colors.success(`${symbols.success} free`);
     const pr = prs.find(p => p.headRefName === branch);
-    const prStr = pr ? colors.info(`PR#${pr.number}`) : pc.dim('no PR');
+    const prStr = pr ? colors.info(`${symbols.pr} PR#${pr.number}`) : pc.dim('no PR');
     console.log(
-      `  ${planetColor(planet.name.padEnd(10))} ${pc.dim(branch.slice(0, 22).padEnd(22))} ${stateStr.padEnd(14)} ${prStr}`
+      `  ${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))} ${pc.dim(branch.slice(0, 22).padEnd(22))} ${stateStr.padEnd(14)} ${prStr}`
     );
   }
 
@@ -70,7 +70,7 @@ export async function dockCommand(config: Config) {
       const title = pr.title.length > 40 ? pr.title.slice(0, 38) + '…' : pr.title;
       console.log(`  ${num} ${title}`);
     }
-    if (prs.length > 8) console.log(pc.dim(`  … and ${prs.length - 8} more`));
+    if (prs.length > 8) console.log(pc.dim(`  󰇘 and ${prs.length - 8} more`));
   }
 
   // Issues
@@ -83,7 +83,7 @@ export async function dockCommand(config: Config) {
       const title = issue.title.length > 40 ? issue.title.slice(0, 38) + '…' : issue.title;
       console.log(`  ${num} ${title}`);
     }
-    if (issues.length > 8) console.log(pc.dim(`  … and ${issues.length - 8} more`));
+    if (issues.length > 8) console.log(pc.dim(`  󰇘 and ${issues.length - 8} more`));
   }
 
   // Keyboard shortcuts

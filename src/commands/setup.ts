@@ -96,7 +96,7 @@ export async function setupCommand(config: Config, projectRoot: string) {
     'Next Steps'
   );
 
-  outro(colors.primary('Infrastructure mission complete. Ready for parallel operations. 🛰️'));
+  outro(colors.primary(`Infrastructure mission complete. Ready for parallel operations. ${symbols.rocket}`));
 }
 
 // linkPlanet runs the full planet linking sequence:
@@ -119,19 +119,31 @@ export async function linkPlanet(
     `SS_PLANET_BASE_PORT=${ports.BASE_PORT}`,
   ].join('\n') + '\n');
 
-  // 2. Ensure SS-managed files are gitignored in the planet
-  const gitignorePath = join(planetDir, '.gitignore');
-  const gitignoreEntries = ['.env.planet', 'SPACE-STATION.md'];
-  let gitignoreContent = existsSync(gitignorePath) ? readFileSync(gitignorePath, 'utf8') : '';
-  let gitignoreChanged = false;
-  for (const entry of gitignoreEntries) {
-    if (!gitignoreContent.split('\n').includes(entry)) {
-      gitignoreContent = gitignoreContent.trimEnd() + '\n' + entry + '\n';
-      gitignoreChanged = true;
+  // 2. Ensure SS-managed files are gitignored in the planet (using info/exclude to avoid modifying .gitignore)
+  try {
+    const { stdout: excludePath } = await run('git', ['rev-parse', '--git-path', 'info/exclude'], planetDir);
+    if (excludePath) {
+      const fullExcludePath = join(planetDir, excludePath);
+      const gitignoreEntries = ['.env.planet', 'SPACE-STATION.md'];
+      let excludeContent = existsSync(fullExcludePath) ? readFileSync(fullExcludePath, 'utf8') : '';
+      let excludeChanged = false;
+      for (const entry of gitignoreEntries) {
+        if (!excludeContent.split('\n').includes(entry)) {
+          excludeContent = excludeContent.trimEnd() + '\n' + entry + '\n';
+          excludeChanged = true;
+        }
+      }
+      if (excludeChanged) {
+        if (!existsSync(join(planetDir, '.git'))) {
+          // If it's a bare repo or something else, skip
+        } else {
+          mkdirSync(join(fullExcludePath, '..'), { recursive: true });
+          writeFileSync(fullExcludePath, excludeContent);
+        }
+      }
     }
-  }
-  if (gitignoreChanged) {
-    writeFileSync(gitignorePath, gitignoreContent);
+  } catch (e) {
+    // Fallback or skip if git command fails
   }
 
   // 3. Symlink planets/_shared into the planet

@@ -24,7 +24,7 @@ const projectRoot = process.cwd();
 async function main() {
   program
     .name('ss')
-    .description('🛸 Space Station - Manage multiple parallel repo clones')
+    .description(`${symbols.loading} Space Station - Manage multiple parallel repo clones`)
     .version(version);
 
   program
@@ -122,16 +122,16 @@ async function main() {
     const choice = await select({
       message: 'What would you like to do?',
       options: [
-        { value: 'console', label: '🖥️  Launch Console' },
-        { value: 'status', label: '📊 Show status' },
-        { value: 'prs', label: '🔀 Manage PRs' },
-        { value: 'issues', label: '📋 View Issues' },
-        { value: 'exit', label: '🚪 Exit' },
+        { value: 'console', label: `${symbols.console} Launch Console` },
+        { value: 'status', label: `${symbols.status} Show status` },
+        { value: 'prs', label: `${symbols.pr} Manage PRs` },
+        { value: 'issues', label: `${symbols.issue} View Issues` },
+        { value: 'exit', label: `${symbols.exit} Exit` },
       ],
     });
 
     if (isCancel(choice) || choice === 'exit') {
-      outro('Safe travels, commander! 🛸');
+      outro(`Safe travels, commander! ${symbols.loading}`);
       return;
     }
 
@@ -140,7 +140,7 @@ async function main() {
     if (choice === 'prs') await prsCommand(config, projectRoot);
     if (choice === 'issues') await issuesCommand(config);
     
-    outro('Mission accomplished! 🚀');
+    outro(`Mission accomplished! ${symbols.rocket}`);
     return;
   }
 
@@ -148,6 +148,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error(colors.error(`\n💥 Error: ${err.message}`));
+  console.error(colors.error(`\n${symbols.error} Error: ${err.message}`));
   process.exit(1);
 });

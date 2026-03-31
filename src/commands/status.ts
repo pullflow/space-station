@@ -16,14 +16,15 @@ export async function statusCommand(config: Config) {
 
   let output = '';
   
-  for (const planet of planets) {
+  for (let i = 0; i < planets.length; i++) {
+    const planet = planets[i];
     const branch = await getBranch(planet.dir);
     const gitStatus = await getStatus(planet.dir);
     
-    let statusLabel = colors.success('✨ Available');
+    let statusLabel = colors.success(`${symbols.success} Available`);
     if (gitStatus) {
       const lines = gitStatus.split('\n').filter(l => l.trim() !== '');
-      statusLabel = colors.warning(`🔧 Active:${lines.length}`);
+      statusLabel = colors.warning(`${symbols.warning} Active:${lines.length}`);
     }
 
     const planetPR = prs.find(pr => pr.headRefName === branch);
@@ -34,7 +35,7 @@ export async function statusCommand(config: Config) {
 
     const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
     
-    output += `${planet.emoji} ${planetColor(planet.name.padEnd(10))}: ${colors.info(branch.padEnd(20))} [${statusLabel}] ${prInfo}\n`;
+    output += `${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))}: ${colors.info(branch.padEnd(20))} [${statusLabel}] ${prInfo}${i === planets.length - 1 ? '' : '\n'}`;
   }
 
   note(output, 'Planetary Status');

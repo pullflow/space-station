@@ -2,14 +2,14 @@ import { execFileSync } from 'child_process';
 import { join } from 'path';
 import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
-import { colors } from '../ui/theme';
+import { colors, symbols } from '../ui/theme';
 import { confirm, intro, outro, isCancel, note } from '@clack/prompts';
 import { getAsciiLogo } from '../ui/ascii';
 
 export async function consoleCommand(config: Config, projectRoot: string) {
   const logo = await getAsciiLogo();
   console.log(logo);
-  intro(colors.primary('Space Station — Command Center'));
+  intro(colors.primary(`${symbols.console} Space Station — Command Center`));
 
   const planetsDir = getPlanetsDir(config);
 
