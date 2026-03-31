@@ -20,6 +20,18 @@ P1_DIR="$PLANETS_DIR/${PLANETS[0]}"
 P2_DIR="$PLANETS_DIR/${PLANETS[1]}"
 P3_DIR="$PLANETS_DIR/${PLANETS[2]}"
 
+planet_color() {
+  local color
+  color=$(grep -m1 '^SS_PLANET_COLOR=' "$1/.env.planet" 2>/dev/null | cut -d= -f2)
+  case "$color" in
+    red|blue|green|yellow|purple|orange|pink|cyan) echo "$color" ;;
+    *) echo "default" ;;
+  esac
+}
+P1_COLOR=$(planet_color "$P1_DIR")
+P2_COLOR=$(planet_color "$P2_DIR")
+P3_COLOR=$(planet_color "$P3_DIR")
+
 # Write a resolved copy of tmux.conf with absolute paths baked in
 RESOLVED_CONF="/tmp/ss-tmux.conf"
 sed -e "s|\$SS_PLUGINS_DIR|$PLUGINS_DIR|g" "$TMUX_CONFIG" > "$RESOLVED_CONF"
@@ -51,4 +63,15 @@ $TMUX send-keys -t "$PANE3" "$AGENT_CMD" Enter
 
 $TMUX select-layout -t "$SESSION":0 tiled
 $TMUX select-pane -t "$SESSION":0.0
+
+# Send /rename and /color to each planet pane after Claude Code has had time to load
+(sleep 2 && \
+  tmux -L $SOCKET send-keys -t "$PANE1" "/rename ${PLANETS[0]}" Enter && sleep 0.5 && \
+  tmux -L $SOCKET send-keys -t "$PANE1" "/color $P1_COLOR" Enter && sleep 0.5 && \
+  tmux -L $SOCKET send-keys -t "$PANE2" "/rename ${PLANETS[1]}" Enter && sleep 0.5 && \
+  tmux -L $SOCKET send-keys -t "$PANE2" "/color $P2_COLOR" Enter && sleep 0.5 && \
+  tmux -L $SOCKET send-keys -t "$PANE3" "/rename ${PLANETS[2]}" Enter && sleep 0.5 && \
+  tmux -L $SOCKET send-keys -t "$PANE3" "/color $P3_COLOR" Enter \
+) &
+
 $TMUX attach-session -t "$SESSION"
