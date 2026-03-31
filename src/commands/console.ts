@@ -84,7 +84,7 @@ export async function consoleCommand(config: Config, projectRoot: string) {
 
   outro(colors.success('Launching... (prefix + I to install plugins on first run)'));
 
-  const launcherScript = join(projectRoot, 'bridge-launch.sh');
+  const launcherScript = join(projectRoot, 'launchpad.sh');
   const planetsList = config.planets.join(',');
 
   execFileSync('bash', [launcherScript, projectRoot, planetsDir, planetsList, config.default_agent], {

@@ -2,9 +2,9 @@
 # Copy this file to ss.yaml and update with your settings
 
 repo: "owner/repo-name"
-spacestation_dir: "~/myproject/space-station"
+spacestation_dir: "~/space-station"
 editor: "cursor"
-default_agent: "claude --allow-dangerously-skip-permissions --permission-mode bypassPermissions --effort low"
+default_agent: "claude --enable-auto-mode --effort low"
 planets:
   - mercury
   - venus
