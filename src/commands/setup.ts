@@ -1,4 +1,4 @@
-import { intro, outro, spinner, note } from '@clack/prompts';
+import { intro, outro, spinner } from '@clack/prompts';
 import { existsSync, mkdirSync, readdirSync, symlinkSync, rmSync, lstatSync, readFileSync, writeFileSync } from 'fs';
 import { join, relative } from 'path';
 import type { Config } from '../config';
@@ -17,7 +17,7 @@ export async function setupCommand(config: Config, projectRoot: string) {
   if (!existsSync(planetsDir)) {
     mkdirSync(planetsDir, { recursive: true });
   }
-  
+
   intro(colors.primary('Orchestrating the Space Station Hub (Worktree Environment)'));
 
   // 0. Verify System Dependencies
@@ -43,12 +43,15 @@ export async function setupCommand(config: Config, projectRoot: string) {
     s.stop(colors.success('Hub updated'));
   }
 
-  // 2. Setup Worktrees for each planet defined in config
+  // 2. Ensure _shared exists with default SPACE-STATION.md
+  ensurePlanetShared(planetsDir);
+
+  // 3. Setup each planet
   for (const planetName of config.planets) {
     const planetDir = join(planetsDir, planetName);
-    
+
     s.start(`Preparing ${planetName}...`);
-    
+
     if (!existsSync(planetDir)) {
       s.message(`Creating worktree for ${planetName}...`);
       const exitCode = await addWorktree(hubDir, planetDir, 'main');
@@ -59,96 +62,117 @@ export async function setupCommand(config: Config, projectRoot: string) {
     } else {
       s.message(`${planetName} already exists`);
     }
-    
-    // 3. Configure Planet (Templating & Port Allocation)
-    await configurePlanet(config, planetName, planetDir, projectRoot);
-    
-    // 4. Run project-specific init script if it exists
-    const initScript = join(projectRoot, 'planet-init.sh');
-    if (existsSync(initScript)) {
-      s.message(`Running project-specific init script for ${planetName}...`);
-      await run('bash', [initScript], planetDir);
-    }
-    
+
+    await linkPlanet(config, planetName, planetDir, planetsDir, projectRoot, s);
+
     s.stop(colors.success(`${planetName} ready`));
   }
 
-  // 5. Symlink shared files
+  // 4. Symlink space-station shared/ files into all planets
   await symlinkShared(config);
 
   outro(colors.primary('Infrastructure mission complete. Ready for parallel operations. 🛰️'));
 }
 
-async function configurePlanet(config: Config, planetName: string, planetDir: string, projectRoot: string) {
+// linkPlanet runs the full planet linking sequence:
+//   drop .env.planet → update .gitignore → symlink _shared → run bin/ss-setup hook
+// Called by both setup and reset.
+export async function linkPlanet(
+  config: Config,
+  planetName: string,
+  planetDir: string,
+  planetsDir: string,
+  projectRoot: string,
+  s?: ReturnType<typeof spinner>,
+) {
   const ports = getPlanetPorts(config, planetName);
-  
-  // 1. Handle .env.local (Crucial for infrastructure ports)
-  const envPath = join(planetDir, '.env.local');
-  const sharedTemplatePath = join(projectRoot, 'shared', '.env.local.template');
-  
-  let envContent = '';
-  if (existsSync(sharedTemplatePath)) {
-    envContent = readFileSync(sharedTemplatePath, 'utf8');
-  } else if (existsSync(envPath)) {
-    envContent = readFileSync(envPath, 'utf8');
-  }
 
-  // Inject standard SS infrastructure environment variables
-  const infraVars = [
-    `# Space Station Orchestration`,
-    `PLANET_NAME=${planetName}`,
-    `PLANET_INDEX=${ports.PLANET_INDEX}`,
-    `BASE_PORT=${ports.BASE_PORT}`,
-    `CADDY_PORT=${ports.CADDY_PORT}`,
-    `SHELL_PORT=${ports.SHELL_PORT}`,
-    `POSTGRES_PORT=${ports.POSTGRES_PORT}`,
-    `NATS_PORT=${ports.NATS_PORT}`,
-    `VALKEY_PORT=${ports.VALKEY_PORT}`,
-    `# ---`,
-  ].join('\n');
+  // 1. Write .env.planet
+  const envPlanetPath = join(planetDir, '.env.planet');
+  writeFileSync(envPlanetPath, [
+    `SS_PLANET_NAME=${planetName}`,
+    `SS_PLANET_BASE_PORT=${ports.BASE_PORT}`,
+  ].join('\n') + '\n');
 
-  if (envContent) {
-    if (envContent.includes('# Space Station Orchestration')) {
-      envContent = infraVars + '\n' + envContent.split('# ---')[1]?.trim();
-    } else {
-      envContent = infraVars + '\n' + envContent;
+  // 2. Ensure SS-managed files are gitignored in the planet
+  const gitignorePath = join(planetDir, '.gitignore');
+  const gitignoreEntries = ['.env.planet', 'SPACE-STATION.md'];
+  let gitignoreContent = existsSync(gitignorePath) ? readFileSync(gitignorePath, 'utf8') : '';
+  let gitignoreChanged = false;
+  for (const entry of gitignoreEntries) {
+    if (!gitignoreContent.split('\n').includes(entry)) {
+      gitignoreContent = gitignoreContent.trimEnd() + '\n' + entry + '\n';
+      gitignoreChanged = true;
     }
-  } else {
-    envContent = infraVars;
   }
-  
-  // Replace templated variables {{VAR}}
-  envContent = envContent.replace(/{{PLANET_NAME}}/g, planetName);
-  envContent = envContent.replace(/{{PLANET_INDEX}}/g, (ports.PLANET_INDEX ?? 0).toString());
-  envContent = envContent.replace(/{{BASE_PORT}}/g, (ports.BASE_PORT ?? 0).toString());
-  
-  writeFileSync(envPath, envContent);
+  if (gitignoreChanged) {
+    writeFileSync(gitignorePath, gitignoreContent);
+  }
 
-  // 2. Handle generic templates in /shared/templates
+  // 3. Symlink planets/_shared into the planet
+  const planetSharedDir = join(planetsDir, '_shared');
+  if (existsSync(planetSharedDir)) {
+    const sharedFiles = readdirSync(planetSharedDir).filter(f => f !== '.keep' && f !== '.gitignore');
+    for (const file of sharedFiles) {
+      const targetPath = join(planetDir, file);
+      const sourcePath = join(planetSharedDir, file);
+      const relativeSource = relative(planetDir, sourcePath);
+      if (existsSync(targetPath) && lstatSync(targetPath).isSymbolicLink()) {
+        rmSync(targetPath);
+      }
+      try { symlinkSync(relativeSource, targetPath); } catch (e) {}
+    }
+  }
+
+  // 4. Run space-station-init.sh hook if the planet repo provides one
+  const hookCandidates = [
+    join(planetDir, 'space-station-init.sh'),
+    join(planetDir, 'scripts', 'space-station-init.sh'),
+  ];
+  const setupHook = hookCandidates.find(existsSync);
+  if (setupHook) {
+    s?.message(`Running space-station-init.sh for ${planetName}...`);
+    await run('bash', [setupHook], planetDir, {
+      env: { ...process.env, PLANET_DIR: planetDir, SS_ROOT: projectRoot },
+    });
+  }
+
+  // 5. Handle generic templates in shared/templates
   const templateDir = join(projectRoot, 'shared', 'templates');
   if (existsSync(templateDir)) {
     const templates = readdirSync(templateDir);
-    
     for (const templateFile of templates) {
       const templatePath = join(templateDir, templateFile);
       if (lstatSync(templatePath).isFile()) {
         let content = readFileSync(templatePath, 'utf8');
-        
-        // Universal template replacements
         content = content.replace(/{{PLANET_NAME}}/g, planetName);
         content = content.replace(/{{PLANET_INDEX}}/g, (ports.PLANET_INDEX ?? 0).toString());
         content = content.replace(/{{BASE_PORT}}/g, (ports.BASE_PORT ?? 0).toString());
-        
-        // Also replace specific ports
         for (const [key, val] of Object.entries(ports)) {
           content = content.replace(new RegExp(`{{${key}}}`, 'g'), val.toString());
         }
-        
-        const outputPath = join(planetDir, templateFile);
-        writeFileSync(outputPath, content);
+        writeFileSync(join(planetDir, templateFile), content);
       }
     }
   }
+}
+
+function ensurePlanetShared(planetsDir: string) {
+  const planetSharedDir = join(planetsDir, '_shared');
+  if (!existsSync(planetSharedDir)) {
+    mkdirSync(planetSharedDir, { recursive: true });
+  }
+  const defaultMd = join(planetSharedDir, 'SPACE-STATION.md');
+  if (!existsSync(defaultMd)) {
+    writeFileSync(defaultMd, readDefaultSpaceStationMd());
+  }
+}
+
+function readDefaultSpaceStationMd(): string {
+  // Prefer the checked-in file next to this install if present
+  const checked = join(__dirname, '../../planets/_shared/SPACE-STATION.md');
+  if (existsSync(checked)) return readFileSync(checked, 'utf8');
+  return DEFAULT_SPACE_STATION_MD;
 }
 
 export async function symlinkSharedCommand(config: Config) {
@@ -172,32 +196,80 @@ async function symlinkShared(config: Config) {
   const planets = readdirSync(planetsDir)
     .filter(d => planetNames.has(d.toLowerCase()) && lstatSync(join(planetsDir, d)).isDirectory());
 
-  const sharedFiles = readdirSync(sharedDir).filter(f => 
-    f !== '.keep' && 
-    f !== 'templates' && 
+  const sharedFiles = readdirSync(sharedDir).filter(f =>
+    f !== '.keep' &&
+    f !== 'templates' &&
     !f.endsWith('.template') &&
     f !== '.env.local'
   );
 
   for (const planet of planets) {
     const planetPath = join(planetsDir, planet);
-    
     for (const file of sharedFiles) {
       const targetPath = join(planetPath, file);
       const sourcePath = join(sharedDir, file);
       const relativeSource = relative(planetPath, sourcePath);
-
-      if (existsSync(targetPath)) {
-        if (lstatSync(targetPath).isSymbolicLink()) {
-          rmSync(targetPath);
-        }
+      if (existsSync(targetPath) && lstatSync(targetPath).isSymbolicLink()) {
+        rmSync(targetPath);
       }
-      
-      try {
-        symlinkSync(relativeSource, targetPath);
-      } catch (e) {}
+      try { symlinkSync(relativeSource, targetPath); } catch (e) {}
     }
   }
 
   s.stop(colors.success('Shared resources symlinked'));
 }
+
+const DEFAULT_SPACE_STATION_MD = `# Space Station
+
+This planet is part of the **Space Station** — a multi-agent orchestration layer using git worktrees for parallel development.
+
+## Planet Identity
+
+SS drops a \`.env.planet\` file into this directory on every setup and reset:
+
+\`\`\`sh
+SS_PLANET_NAME=mercury
+SS_PLANET_BASE_PORT=8000
+\`\`\`
+
+Source it wherever you need planet-specific values (ports, names, etc.).
+
+## Setup Hook
+
+If your repo needs custom initialization (e.g. rewriting ports in \`.env.local\`), add an executable script at either:
+
+\`\`\`
+space-station-init.sh
+scripts/space-station-init.sh
+\`\`\`
+
+SS checks both locations (in that order) and calls the first one it finds, after dropping \`.env.planet\` and symlinking shared files. The following environment variables are available:
+
+\`\`\`sh
+PLANET_DIR   # absolute path to this planet directory
+SS_ROOT      # absolute path to the space station root
+\`\`\`
+
+Example \`space-station-init.sh\`:
+
+\`\`\`bash
+#!/usr/bin/env bash
+set -euo pipefail
+source "$PLANET_DIR/.env.planet"
+
+sed -i.bak "s/^PORT=.*/PORT=\${SS_PLANET_BASE_PORT}/" .env.local
+rm -f .env.local.bak
+\`\`\`
+
+## Shared Files
+
+Anything in \`planets/_shared/\` is symlinked into every planet on setup. Edit files there to propagate changes to all planets.
+
+## Key Commands
+
+\`\`\`sh
+ss list          # Show all planets and branches
+ss reset <p>     # Reset a planet to main (re-runs linking)
+ss agent <p>     # Launch agent on a planet
+\`\`\`
+`;

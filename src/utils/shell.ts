@@ -1,24 +1,34 @@
-export async function run(cmd: string, args: string[] = [], cwd?: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const process = Bun.spawn([cmd, ...args], {
+export interface RunOptions {
+  env?: Record<string, string | undefined>;
+}
+
+export async function run(
+  cmd: string,
+  args: string[] = [],
+  cwd?: string,
+  options?: RunOptions,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const proc = Bun.spawn([cmd, ...args], {
     cwd,
-    stderr: "pipe",
-    stdout: "pipe",
+    stderr: 'pipe',
+    stdout: 'pipe',
+    env: options?.env as Record<string, string> | undefined,
   });
 
-  const stdout = await new Response(process.stdout).text();
-  const stderr = await new Response(process.stderr).text();
-  const exitCode = await process.exited;
+  const stdout = await new Response(proc.stdout).text();
+  const stderr = await new Response(proc.stderr).text();
+  const exitCode = await proc.exited;
 
   return { stdout: stdout.trim(), stderr: stderr.trim(), exitCode };
 }
 
 export async function runInteractive(cmd: string, args: string[] = [], cwd?: string): Promise<number> {
-  const process = Bun.spawn([cmd, ...args], {
+  const proc = Bun.spawn([cmd, ...args], {
     cwd,
-    stdin: "inherit",
-    stdout: "inherit",
-    stderr: "inherit",
+    stdin: 'inherit',
+    stdout: 'inherit',
+    stderr: 'inherit',
   });
 
-  return await process.exited;
+  return await proc.exited;
 }

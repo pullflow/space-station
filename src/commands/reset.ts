@@ -1,31 +1,55 @@
-import { spinner, note, confirm, isCancel } from '@clack/prompts';
+import { intro, outro, spinner, select, isCancel } from '@clack/prompts';
+import { existsSync } from 'fs';
+import { join } from 'path';
 import type { Config } from '../config';
+import { getPlanetsDir } from '../config';
 import { colors } from '../ui/theme';
-import { basename } from 'path';
 import { getStatus, checkout, pull } from '../utils/git';
-import { PLANET_NAMES } from '../utils/planets';
+import { linkPlanet } from './setup';
 
-export async function resetCommand(config: Config) {
-  const currentDir = basename(process.cwd()).toLowerCase();
-  if (!PLANET_NAMES.includes(currentDir)) {
-    console.error(colors.error(`Error: reset must be run from a planet folder (${PLANET_NAMES.join(', ')})`));
+export async function resetCommand(config: Config, projectRoot: string, planetArg?: string, force = false) {
+  const planetsDir = getPlanetsDir(config);
+
+  let planetName = planetArg?.toLowerCase();
+
+  if (!planetName) {
+    const choice = await select({
+      message: 'Which planet do you want to reset?',
+      options: config.planets.map(p => ({ value: p, label: p })),
+    });
+    if (isCancel(choice)) return;
+    planetName = choice as string;
+  }
+
+  if (!config.planets.includes(planetName)) {
+    console.error(colors.error(`Unknown planet: ${planetName}. Valid planets: ${config.planets.join(', ')}`));
     return;
   }
 
-  const status = await getStatus(process.cwd());
-  if (status) {
-    const proceed = await confirm({
-      message: 'Git status is not clean. Resetting will lose uncommitted changes. Proceed?',
-      initialValue: false,
-    });
-    if (isCancel(proceed) || !proceed) return;
+  const planetDir = join(planetsDir, planetName);
+  if (!existsSync(planetDir)) {
+    console.error(colors.error(`Planet directory not found: ${planetDir}. Run \`ss setup\` first.`));
+    return;
+  }
+
+  intro(colors.primary(`Resetting ${planetName}...`));
+
+  const status = await getStatus(planetDir);
+  if (status && !force) {
+    console.error(colors.error(`${planetName} has uncommitted changes. Use --force to override.`));
+    outro(colors.error('Reset aborted.'));
+    return;
   }
 
   const s = spinner();
-  s.start(`Resetting ${currentDir} to latest main...`);
-  
-  await checkout('main', process.cwd());
-  await pull(process.cwd());
-  
-  s.stop(colors.success(`${currentDir} successfully reset to latest main`));
+  s.start(`Resetting ${planetName} to latest main...`);
+  await checkout('main', planetDir);
+  await pull(planetDir);
+  s.stop(colors.success(`${planetName} reset to latest main`));
+
+  s.start(`Linking ${planetName}...`);
+  await linkPlanet(config, planetName, planetDir, planetsDir, projectRoot, s);
+  s.stop(colors.success(`${planetName} linked`));
+
+  outro(colors.primary('Done.'));
 }
