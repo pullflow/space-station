@@ -7,7 +7,12 @@ export interface PRData {
   headRefName: string;
   url: string;
   body: string;
-  statusCheckRollup?: any[];
+  labels: { name: string }[];
+  statusCheckRollup?: {
+    state: string;
+    status: string;
+    conclusion: string;
+  }[];
   reviews?: any[];
   reviewRequests?: any[];
 }
@@ -22,7 +27,7 @@ export async function listPRs(repo: string, filter: 'authored' | 'review' | 'all
     'pr', 'list',
     '-R', repo,
     '--search', search,
-    '--json', 'number,title,state,headRefName,url,body',
+    '--json', 'number,title,state,headRefName,url,body,labels,statusCheckRollup',
     '--limit', '100'
   ]);
 

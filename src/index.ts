@@ -14,6 +14,7 @@ import { initCommand } from './commands/init';
 import { setupCommand } from './commands/setup';
 import { prsCommand } from './commands/prs';
 import { issuesCommand } from './commands/issues';
+import { dashCommand } from './commands/dash';
 import { resetCommand } from './commands/reset';
 import { consoleCommand } from './commands/console';
 import { dockCommand } from './commands/dock';
@@ -37,6 +38,14 @@ async function main() {
     .action(async () => {
       const config = loadConfig(projectRoot);
       await statusCommand(config);
+    });
+
+  program
+    .command('dash')
+    .description('Active issues and PRs dashboard with live refresh')
+    .action(async () => {
+      const config = loadConfig(projectRoot);
+      await dashCommand(config);
     });
 
   program
