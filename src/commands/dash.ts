@@ -26,34 +26,38 @@ export async function dashCommand(config: Config) {
   };
 
   async function render() {
-    process.stdout.write(clear);
-    console.log(colors.primary(` 🛸 SPACE STATION MISSION DASHBOARD`));
-    console.log(colors.dim(`  Refreshing every 30s • Last update: ${new Date().toLocaleTimeString()}\n`));
-
     try {
-      const [prs, issues] = await Promise.all([
+      // Fetch everything upfront
+      const [prs, issues, planetsData] = await Promise.all([
         listPRs(config.repo, 'all'),
-        listIssues(config.repo)
+        listIssues(config.repo),
+        Promise.all(getPlanets(config).map(async (planet) => {
+          const [branch, gitStatus] = await Promise.all([
+            getBranch(planet.dir),
+            getStatus(planet.dir)
+          ]);
+          return { ...planet, branch, gitStatus };
+        }))
       ]);
 
-      const planets = getPlanets(config);
+      // Only clear and render once we have all the data
+      process.stdout.write(clear);
+      console.log(colors.primary(` 🛸 SPACE STATION MISSION DASHBOARD`));
+      console.log(colors.dim(`  Refreshing every 30s • Last update: ${new Date().toLocaleTimeString()}\n`));
 
       // --- Planets Section ---
       console.log(pc.bold(pc.blue(`  ${symbols.status} PLANETS`)));
-      for (const planet of planets) {
-        const branch = await getBranch(planet.dir);
-        const gitStatus = await getStatus(planet.dir);
-        
+      for (const planet of planetsData) {
         let statusIcon = colors.success(symbols.success);
         let statusText = pc.green('Ready');
         
-        if (gitStatus) {
+        if (planet.gitStatus) {
           statusIcon = colors.warning(symbols.warning);
-          const lines = gitStatus.split('\n').filter(l => l.trim() !== '');
+          const lines = planet.gitStatus.split('\n').filter(l => l.trim() !== '');
           statusText = pc.yellow(`Active (${lines.length} changes)`);
         }
 
-        const planetPR = prs.find(pr => pr.headRefName === branch);
+        const planetPR = prs.find(pr => pr.headRefName === planet.branch);
         let prInfo = colors.dim(' (No PR)');
         if (planetPR) {
           prInfo = pc.cyan(` (PR #${planetPR.number})`);
@@ -62,7 +66,7 @@ export async function dashCommand(config: Config) {
         const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
         const planetIcon = (symbols as any)[planet.name] || symbols.unknown;
         
-        console.log(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(8))} ${pc.white(branch.padEnd(20))} ${statusIcon} ${statusText}${prInfo}`);
+        console.log(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(8))} ${pc.white(planet.branch.padEnd(20))} ${statusIcon} ${statusText}${prInfo}`);
       }
 
       console.log('');
@@ -107,6 +111,7 @@ export async function dashCommand(config: Config) {
 
       console.log(`\n  ${colors.dim('Press Ctrl+C to exit dashboard')}`);
     } catch (error: any) {
+      // Don't clear on error if we haven't already, so previous data stays visible if possible
       console.log(colors.error(`\n  Error fetching dashboard data: ${error.message}`));
     }
   }
