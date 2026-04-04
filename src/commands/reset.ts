@@ -5,6 +5,7 @@ import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
 import { colors } from '../ui/theme';
 import { getStatus, checkout, fetchBranch, git } from '../utils/git';
+import { run } from '../utils/shell';
 import { linkPlanet } from './setup';
 
 export async function resetCommand(config: Config, projectRoot: string, planetArg?: string, force = false) {

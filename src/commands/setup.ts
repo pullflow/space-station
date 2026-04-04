@@ -126,7 +126,7 @@ export async function linkPlanet(
   try {
     const { stdout: excludePath } = await run('git', ['rev-parse', '--git-path', 'info/exclude'], planetDir);
     if (excludePath) {
-      const fullExcludePath = join(planetDir, excludePath);
+      const fullExcludePath = excludePath.startsWith('/') ? excludePath : join(planetDir, excludePath);
       const gitignoreEntries = ['.env.planet', 'SPACE-STATION.md'];
       let excludeContent = existsSync(fullExcludePath) ? readFileSync(fullExcludePath, 'utf8') : '';
       let excludeChanged = false;
