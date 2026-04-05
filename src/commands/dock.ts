@@ -67,7 +67,7 @@ export async function dockCommand(config: Config) {
   } else {
     for (const pr of prs.slice(0, 8)) {
       const num = colors.info(`#${pr.number}`.padEnd(6));
-      const title = pr.title.length > 40 ? pr.title.slice(0, 38) + '…' : pr.title;
+      const title = pr.title.length > 60 ? pr.title.slice(0, 58) + '…' : pr.title;
       console.log(`  ${num} ${title}`);
     }
     if (prs.length > 8) console.log(pc.dim(`  󰇘 and ${prs.length - 8} more`));
@@ -80,7 +80,7 @@ export async function dockCommand(config: Config) {
   } else {
     for (const issue of issues.slice(0, 8)) {
       const num = colors.warning(`#${issue.number}`.padEnd(6));
-      const title = issue.title.length > 40 ? issue.title.slice(0, 38) + '…' : issue.title;
+      const title = issue.title.length > 60 ? issue.title.slice(0, 58) + '…' : issue.title;
       console.log(`  ${num} ${title}`);
     }
     if (issues.length > 8) console.log(pc.dim(`  󰇘 and ${issues.length - 8} more`));
@@ -96,6 +96,8 @@ export async function dockCommand(config: Config) {
     ['ss console', 'Relaunch console'],
     ['prefix + hjkl', 'Navigate panes'],
     ['prefix + r', 'Reload tmux config'],
+    ['Ctrl + Tab', 'Next window'],
+    ['Ctrl + Shift + Tab', 'Previous window'],
   ];
   for (const [key, desc] of shortcuts) {
     console.log(`  ${colors.info(key.padEnd(22))} ${pc.dim(desc)}`);

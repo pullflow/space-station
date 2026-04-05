@@ -13,16 +13,20 @@ export async function dashCommand(config: Config) {
   const refreshInterval = 30000; // 30 seconds
 
   const formatLabel = (label: string) => {
+    const { color: colorFn, bg: bgFn } = colors.getPillColors(label);
+    
     if (label.startsWith('on-')) {
       const planetName = label.replace('on-', '').toLowerCase();
       const planetColor = (colors.planet as any)[planetName];
-      const planetIcon = (symbols as any)[planetName];
+      const bgPlanetColor = (colors.bgPlanet as any)[planetName];
+      const planetIcon = (symbols as any)[planetName]?.trim() || '';
       
-      if (planetColor && planetIcon) {
-        return planetColor(`${planetIcon}${planetName}`);
+      if (planetColor && planetIcon && bgPlanetColor) {
+        return colors.multiPill(` ${planetIcon} `, ` ${planetName} `, planetColor, bgPlanetColor, pc.black, pc.bgBlack);
       }
     }
-    return pc.cyan(`[${label}]`);
+    
+    return colors.pill(` ${label} `, colorFn, bgFn);
   };
 
   async function render() {
@@ -54,7 +58,7 @@ export async function dashCommand(config: Config) {
         if (planet.gitStatus) {
           statusIcon = colors.warning(symbols.warning);
           const lines = planet.gitStatus.split('\n').filter(l => l.trim() !== '');
-          statusText = pc.yellow(`Active (${lines.length} changes)`);
+          statusText = pc.yellow(`Active (${lines.length})`);
         }
 
         const planetPR = prs.find(pr => pr.headRefName === planet.branch);
@@ -66,31 +70,34 @@ export async function dashCommand(config: Config) {
         const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
         const planetIcon = (symbols as any)[planet.name] || symbols.unknown;
         
-        console.log(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(8))} ${pc.white(planet.branch.padEnd(20))} ${statusIcon} ${statusText}${prInfo}`);
+        // Layout: Icon Name Status Branch PR
+        process.stdout.write(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(10))} ${statusIcon} ${statusText.padEnd(12)} ${pc.white(planet.branch.padEnd(35))} ${prInfo}\n`);
       }
 
       console.log('');
 
       // --- Issues Section ---
-      console.log(pc.bold(pc.magenta(`  ${symbols.issue} ISSUES (${issues.length})`)));
+      console.log(pc.bold(pc.magenta(`  ${symbols.issue} ISSUES `)) + pc.magenta(issues.length));
       if (issues.length === 0) {
         console.log(colors.dim('    No open issues assigned to you.'));
       } else {
         issues.forEach(issue => {
           const labels = issue.labels.map((l: any) => formatLabel(l.name)).join(' ');
-          console.log(`    ${colors.success(`#${issue.number.toString().padEnd(5)}`)} ${pc.white(issue.title)} ${labels}`);
+          const title = issue.title.length > 60 ? issue.title.slice(0, 57) + '...' : issue.title;
+          console.log(`    ${pc.bold(pc.magenta(`#${issue.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}`);
         });
       }
 
       console.log('');
 
       // --- PRs Section ---
-      console.log(pc.bold(pc.yellow(`  ${symbols.pr} PULL REQUESTS (${prs.length})`)));
+      console.log(pc.bold(pc.yellow(`  ${symbols.pr} PULL REQUESTS `)) + pc.yellow(prs.length));
       if (prs.length === 0) {
         console.log(colors.dim('    No open PRs found.'));
       } else {
         prs.forEach(pr => {
           const labels = pr.labels.map((l: any) => formatLabel(l.name)).join(' ');
+          const title = pr.title.length > 60 ? pr.title.slice(0, 57) + '...' : pr.title;
           
           // CI/CD state
           let ciStatus = '';
@@ -105,7 +112,7 @@ export async function dashCommand(config: Config) {
             }
           }
 
-          console.log(`    ${colors.success(`#${pr.number.toString().padEnd(5)}`)} ${pc.white(pr.title)} ${labels}${ciStatus}`);
+          console.log(`    ${pc.bold(pc.yellow(`#${pr.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}${ciStatus}`);
         });
       }
 

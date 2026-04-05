@@ -19,7 +19,8 @@ export async function consoleCommand(config: Config, projectRoot: string) {
       `  ${colors.info('prefix + hjkl')}    Navigate panes`,
       `  ${colors.info('prefix + %  "')}    Split pane`,
       `  ${colors.info('prefix + r')}       Reload config`,
-      `  ${colors.info('prefix + p/n')}     Previous / next window`,
+      `  ${colors.info('Ctrl + Tab')}       Next window`,
+      `  ${colors.info('Ctrl + Shift + Tab')} Previous window`,
     ].join('\n'),
     'Tmux Shortcuts'
   );

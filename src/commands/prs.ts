@@ -1,7 +1,7 @@
 import { intro, outro, spinner, select, isCancel, note } from '@clack/prompts';
 import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
-import { colors } from '../ui/theme';
+import { colors, symbols } from '../ui/theme';
 import { listPRs, getPRDetails } from '../utils/github';
 import { getPlanets, PLANET_NAMES } from '../utils/planets';
 import { fetchHub, checkout, mergeMain } from '../utils/git';
