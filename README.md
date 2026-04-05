@@ -98,6 +98,47 @@ Place any `.template` file in `shared/templates/` (e.g., `Caddyfile.template`). 
 
 ---
 
+## 🎨 Visual Theme & Colors
+
+Space Station uses a consistent color language across the CLI, Dashboard, and Tmux status bar to help you identify planets and system states at a glance.
+
+### 🌌 Planet Colors
+Each planet is assigned a distinct color and emoji used in the `ss status` and `ss dock` commands.
+
+During `ss setup` or `ss reset`, the system writes a `.env.planet` file into each planet's directory. This file includes the `SS_PLANET_COLOR` variable, which can be sourced by your own setup hooks (e.g., `space-station-init.sh`) to customize your environment based on the planet's identity:
+
+```bash
+# Example from .env.planet
+SS_PLANET_NAME=mars
+SS_PLANET_COLOR=red
+SS_PLANET_BASE_PORT=11000
+```
+
+| Planet | Color | Symbol |
+| :--- | :--- | :--- |
+| **Mercury** | White | 󰺷 |
+| **Venus** | Yellow | 󰺷 |
+| **Earth** | Blue | 󰺷 |
+| **Mars** | Red | 󰺷 |
+| **Jupiter** | Magenta | 󰺷 |
+| **Saturn** | Yellow | 󰺷 |
+| **Uranus** | Cyan | 󰺷 |
+| **Neptune** | Blue | 󰺷 |
+
+### 🛰️ UI Theme Colors
+The Space Station interface uses the following functional color palette:
+
+*   **Primary**: ![#00c6ff](https://via.placeholder.com/15/00c6ff/00c6ff.png) ![#0072ff](https://via.placeholder.com/15/0072ff/0072ff.png) Blue Gradient (Headers & Branding)
+*   **Secondary**: ![#f7971e](https://via.placeholder.com/15/f7971e/f7971e.png) ![#ffd200](https://via.placeholder.com/15/ffd200/ffd200.png) Orange Gradient (Highlights)
+*   **Success**: Green (Available status, successful commands)
+*   **Error**: Red (Failures, uncommitted changes, alerts)
+*   **Warning**: Yellow (Active status, git conflicts)
+*   **Info**: Cyan (Branch names, PR numbers)
+*   **Dim**: Gray (Secondary labels, paths)
+*   **Agent**: Magenta (AI Agent processes)
+
+---
+
 ## 🌌 Why Space Station?
 Modern development with AI agents creates a bottleneck: **testing**. If an agent is working in your only working tree, you can't test their work without stopping yours. 
 
