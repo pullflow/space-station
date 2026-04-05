@@ -19,6 +19,7 @@ import { resetCommand } from './commands/reset';
 import { consoleCommand } from './commands/console';
 import { dockCommand } from './commands/dock';
 import { agentCommand } from './commands/agent';
+import { landCommand } from './commands/land';
 
 const program = new Command();
 
@@ -122,6 +123,14 @@ async function main() {
     .action(async (planet) => {
       const config = loadConfig(projectRoot);
       await agentCommand(config, planet);
+    });
+
+  program
+    .command('land [planet]')
+    .description('Reset a planet and launch agent (auto-detects if in planet folder)')
+    .action(async (planet) => {
+      const config = loadConfig(projectRoot);
+      await landCommand(config, projectRoot, planet);
     });
 
   // Load config once for dynamic planet commands
