@@ -127,6 +127,7 @@ async function main() {
 
   program
     .command('land [planet]')
+    .alias('l')
     .description('Reset a planet and launch agent (auto-detects if in planet folder)')
     .action(async (planet) => {
       const config = loadConfig(projectRoot);
