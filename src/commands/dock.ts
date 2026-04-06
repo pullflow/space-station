@@ -50,13 +50,14 @@ export async function dockCommand(config: Config) {
     const branch = branches[i];
     const dirty = statuses[i];
     const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
+    const branchStr = branch.length > 25 ? branch.slice(0, 22) + '...' : branch;
     const stateStr = dirty
       ? colors.warning(`${symbols.warning} active`)
       : colors.success(`${symbols.success} free`);
     const pr = prs.find(p => p.headRefName === branch);
     const prStr = pr ? colors.info(`${symbols.pr} PR#${pr.number}`) : pc.dim('no PR');
     console.log(
-      `  ${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))} ${pc.dim(branch.slice(0, 22).padEnd(22))} ${stateStr.padEnd(14)} ${prStr}`
+      `  ${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))} ${pc.dim(branchStr.padEnd(25))} ${stateStr.padEnd(14)} ${prStr}`
     );
   }
 

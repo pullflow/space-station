@@ -67,11 +67,10 @@ export async function dashCommand(config: Config) {
           prInfo = pc.cyan(` (PR #${planetPR.number})`);
         }
 
-        const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
-        const planetIcon = (symbols as any)[planet.name] || symbols.unknown;
+        const branchStr = planet.branch.length > 25 ? planet.branch.slice(0, 22) + '...' : planet.branch;
         
         // Layout: Icon Name Status Branch PR
-        process.stdout.write(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(10))} ${statusIcon} ${statusText.padEnd(12)} ${pc.white(planet.branch.padEnd(35))} ${prInfo}\n`);
+        process.stdout.write(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(10))} ${statusIcon} ${statusText.padEnd(12)} ${pc.white(branchStr.padEnd(25))} ${prInfo}\n`);
       }
 
       console.log('');
