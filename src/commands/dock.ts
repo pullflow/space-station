@@ -34,21 +34,21 @@ export async function dockCommand(config: Config) {
     listIssues(config.repo),
   ]);
 
-  const branches = await Promise.all(
-    planets.map(p => getBranch(p.dir))
-  );
-  const statuses = await Promise.all(
-    planets.map(p => getStatus(p.dir))
+  const planetData = await Promise.all(
+    planets.map(async p => {
+      const [branch, dirty] = await Promise.all([
+        getBranch(p.dir),
+        getStatus(p.dir)
+      ]);
+      return { planet: p, branch, dirty };
+    })
   );
 
   s.stop('');
 
   // Planets
   section('PLANETS');
-  for (let i = 0; i < planets.length; i++) {
-    const planet = planets[i];
-    const branch = branches[i];
-    const dirty = statuses[i];
+  for (const { planet, branch, dirty } of planetData) {
     const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
     const branchStr = branch.length > 25 ? branch.slice(0, 22) + '...' : branch;
     const stateStr = dirty

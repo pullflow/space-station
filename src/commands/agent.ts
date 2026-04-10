@@ -57,7 +57,14 @@ export async function agentCommand(config: Config, planetName?: string) {
 
   intro(colors.primary(`${symbols.agent} Launching Agent on ${colors.info(resolvedPlanetName)}`));
   
-  const [cmd, ...args] = config.default_agent.split(' ');
+  const agentParts = config.default_agent.split(' ');
+  const cmd = agentParts[0];
+  const args = agentParts.slice(1);
+
+  if (!cmd) {
+    console.error(colors.error(`${symbols.error} No default agent command configured.`));
+    return;
+  }
   
   // Launch the agent process
   const exitCode = await runInteractive(cmd, args, targetDir, {

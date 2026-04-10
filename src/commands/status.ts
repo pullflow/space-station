@@ -14,10 +14,9 @@ export async function statusCommand(config: Config) {
   
   s.stop('Universe scan complete');
 
-  let output = '';
+  let outputLines = [];
   
-  for (let i = 0; i < planets.length; i++) {
-    const planet = planets[i];
+  for (const planet of planets) {
     const branch = await getBranch(planet.dir);
     const gitStatus = await getStatus(planet.dir);
     
@@ -35,8 +34,8 @@ export async function statusCommand(config: Config) {
 
     const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
     
-    output += `${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))}: ${colors.info(branch.padEnd(20))} [${statusLabel}] ${prInfo}${i === planets.length - 1 ? '' : '\n'}`;
+    outputLines.push(`${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))}: ${colors.info(branch.padEnd(20))} [${statusLabel}] ${prInfo}`);
   }
 
-  note(output, 'Planetary Status');
+  note(outputLines.join('\n'), 'Planetary Status');
 }

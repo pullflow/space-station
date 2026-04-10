@@ -11,7 +11,7 @@ const { version } = require('../package.json');
 // Command imports
 import { statusCommand } from './commands/status';
 import { initCommand } from './commands/init';
-import { setupCommand } from './commands/setup';
+import { setupCommand, symlinkSharedCommand } from './commands/setup';
 import { prsCommand } from './commands/prs';
 import { issuesCommand } from './commands/issues';
 import { dashCommand } from './commands/dash';

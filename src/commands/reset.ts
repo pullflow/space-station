@@ -67,8 +67,10 @@ export async function resetCommand(config: Config, projectRoot: string, planetAr
         const branchList = branches.split('\n').filter(b => b.trim() !== '');
         for (const b of branchList) {
           const cleanBranch = b.replace('*', '').trim();
+          const branchParts = cleanBranch.split('/');
+          const subBranch = branchParts[1];
           // Only delete if it's a numeric timestamp branch, keeping our new stable 'main'
-          if (cleanBranch !== newBranch && /^\d+$/.test(cleanBranch.split('/')[1])) {
+          if (cleanBranch !== newBranch && subBranch && /^\d+$/.test(subBranch)) {
             await run('git', ['branch', '-D', cleanBranch], planetDir);
           }
         }

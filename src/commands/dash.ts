@@ -1,7 +1,8 @@
 import { intro, spinner, note } from '@clack/prompts';
 import type { Config } from '../config';
 import { colors, symbols } from '../ui/theme';
-import { listPRs, listIssues, PRData } from '../utils/github';
+import { listPRs, listIssues } from '../utils/github';
+import type { PRData } from '../utils/github';
 import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
 import pc from 'picocolors';
@@ -13,7 +14,11 @@ export async function dashCommand(config: Config) {
   const refreshInterval = 30000; // 30 seconds
 
   const formatLabel = (label: string) => {
-    const { color: colorFn, bg: bgFn } = colors.getPillColors(label);
+    const pillColors = colors.getPillColors(label);
+    if (!pillColors) return label;
+    
+    const colorFn = pillColors.color;
+    const bgFn = pillColors.bg;
     
     if (label.startsWith('on-')) {
       const planetName = label.replace('on-', '').toLowerCase();
@@ -69,6 +74,9 @@ export async function dashCommand(config: Config) {
 
         const branchStr = planet.branch.length > 25 ? planet.branch.slice(0, 22) + '...' : planet.branch;
         
+        const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
+        const planetIcon = (symbols as any)[planet.name]?.trim() || symbols.unknown.trim();
+
         // Layout: Icon Name Status Branch PR
         process.stdout.write(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(10))} ${statusIcon} ${statusText.padEnd(12)} ${pc.white(branchStr.padEnd(25))} ${prInfo}\n`);
       }
