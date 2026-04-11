@@ -105,12 +105,11 @@ Space Station uses a consistent color language across the CLI, Dashboard, and Tm
 ### 🌌 Planet Colors
 Each planet is assigned a distinct color and emoji used in the `ss status` and `ss dock` commands.
 
-During `ss setup` or `ss reset`, the system writes a `.env.planet` file into each planet's directory. This file includes the `SS_PLANET_COLOR` variable, which can be sourced by your own setup hooks (e.g., `space-station-init.sh`) to customize your environment based on the planet's identity:
+During `ss setup` or `ss reset`, the system writes a `.env.planet` file into each planet's directory. This file includes metadata that can be sourced by your own setup hooks (e.g., `space-station-init.sh`) to customize your environment based on the planet's identity:
 
 ```bash
 # Example from .env.planet
 SS_PLANET_NAME=mars
-SS_PLANET_COLOR=red
 SS_PLANET_BASE_PORT=11000
 ```
 
