@@ -40,21 +40,34 @@ export async function prsCommand(config: Config, projectRoot: string, prNumber?:
     }
     
     return '';
-  };
+    };
 
-  const choice = await select({
+    const getChecksPill = (pr: PRData) => {
+    if (!pr.statusCheckRollup || pr.statusCheckRollup.length === 0) return '';
+    const states = pr.statusCheckRollup.map(s => s.state || s.conclusion || s.status);
+    if (states.includes('FAILURE') || states.includes('failure') || states.includes('action_required')) {
+      return ` ${colors.pill(` ${symbols.error.trim()} Checks `, colors.error, pc.bgRed)}`;
+    }
+    if (states.includes('PENDING') || states.includes('pending') || states.includes('in_progress')) {
+      return ` ${colors.pill(` ${symbols.loading.trim()} Checks `, colors.warning, pc.bgYellow)}`;
+    }
+    return ` ${colors.pill(` ${symbols.success.trim()} Checks `, colors.success, pc.bgGreen)}`;
+    };
+
+    const choice = await select({
     message: 'Select a PR to explore or checkout:',
     options: prs.map(pr => {
       const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
       const reviewStatus = getReviewPill(pr);
+      const checksStatus = getChecksPill(pr);
       return {
         value: pr.number.toString(),
-        label: `${prIcon} ${pr.number}${reviewStatus}: ${pr.title}`,
+        label: `${prIcon} ${pr.number}${checksStatus}${reviewStatus}: ${pr.title}`,
         hint: pr.state
       };
     }),
+    });
 
-  });
 
   if (isCancel(choice)) return;
 

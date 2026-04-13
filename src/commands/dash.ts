@@ -63,6 +63,19 @@ export async function dashCommand(config: Config) {
         return '';
       };
 
+      const getChecksPill = (pr: PRData) => {
+        if (!pr.statusCheckRollup || pr.statusCheckRollup.length === 0) return '';
+        
+        const states = pr.statusCheckRollup.map(s => s.state || s.conclusion || s.status);
+        if (states.includes('FAILURE') || states.includes('failure') || states.includes('action_required')) {
+          return ` ${colors.pill(` ${symbols.error.trim()} Checks `, colors.error, pc.bgRed)}`;
+        }
+        if (states.includes('PENDING') || states.includes('pending') || states.includes('in_progress')) {
+          return ` ${colors.pill(` ${symbols.loading.trim()} Checks `, colors.warning, pc.bgYellow)}`;
+        }
+        return ` ${colors.pill(` ${symbols.success.trim()} Checks `, colors.success, pc.bgGreen)}`;
+      };
+
       // Only clear and render once we have all the data
       process.stdout.write(clear);
       console.log(colors.primary(` 🛸 SPACE STATION MISSION DASHBOARD`));
@@ -89,7 +102,8 @@ export async function dashCommand(config: Config) {
         if (planetPR) {
           const prIcon = planetPR.isDraft ? symbols.prDraft : symbols.pr;
           const reviewPill = getReviewPill(planetPR);
-          prInfo = pc.cyan(` ${prIcon}${planetPR.number}${reviewPill}`);
+          const checksPill = getChecksPill(planetPR);
+          prInfo = pc.cyan(` ${prIcon}${planetPR.number}${checksPill}${reviewPill}`);
         }
 
 
@@ -127,23 +141,11 @@ export async function dashCommand(config: Config) {
           const labels = pr.labels.map((l: any) => formatLabel(l.name)).join(' ');
           const title = pr.title.length > 60 ? pr.title.slice(0, 57) + '...' : pr.title;
           
-          // CI/CD state
-          let ciStatus = '';
-          if (pr.statusCheckRollup && pr.statusCheckRollup.length > 0) {
-            const states = pr.statusCheckRollup.map(s => s.state || s.conclusion || s.status);
-            if (states.includes('FAILURE') || states.includes('failure') || states.includes('action_required')) {
-              ciStatus = colors.error(` ${symbols.error} Checks FAIL`);
-            } else if (states.includes('PENDING') || states.includes('pending') || states.includes('in_progress')) {
-              ciStatus = colors.warning(` ${symbols.loading} Checks PENDING`);
-            } else {
-              ciStatus = colors.success(` ${symbols.success} Checks`);
-            }
-          }
-          
+          const checksStatus = getChecksPill(pr);
           const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
           const reviewStatus = getReviewPill(pr);
 
-          console.log(`    ${pc.bold(pc.yellow(`${prIcon} ${pr.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}${ciStatus}${reviewStatus}`);
+          console.log(`    ${pc.bold(pc.yellow(`${prIcon} ${pr.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}${checksStatus}${reviewStatus}`);
         });
       }
 

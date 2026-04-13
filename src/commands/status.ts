@@ -28,6 +28,18 @@ export async function statusCommand(config: Config) {
     return '';
   };
 
+  const getChecksPill = (pr: PRData) => {
+    if (!pr.statusCheckRollup || pr.statusCheckRollup.length === 0) return '';
+    const states = pr.statusCheckRollup.map(s => s.state || s.conclusion || s.status);
+    if (states.includes('FAILURE') || states.includes('failure') || states.includes('action_required')) {
+      return ` ${colors.pill(` ${symbols.error.trim()} Checks `, colors.error, pc.bgRed)}`;
+    }
+    if (states.includes('PENDING') || states.includes('pending') || states.includes('in_progress')) {
+      return ` ${colors.pill(` ${symbols.loading.trim()} Checks `, colors.warning, pc.bgYellow)}`;
+    }
+    return ` ${colors.pill(` ${symbols.success.trim()} Checks `, colors.success, pc.bgGreen)}`;
+  };
+
   s.stop('Universe scan complete');
 
   let outputLines = [];
@@ -49,7 +61,8 @@ export async function statusCommand(config: Config) {
     if (planetPR) {
       const prIcon = planetPR.isDraft ? symbols.prDraft : symbols.pr;
       const reviewPill = getReviewPill(planetPR);
-      prInfo = ` ${colors.success(`${prIcon} ${planetPR.number}${reviewPill} (${planetPR.state})`)}`;
+      const checksPill = getChecksPill(planetPR);
+      prInfo = ` ${colors.success(`${prIcon} ${planetPR.number}${checksPill}${reviewPill} (${planetPR.state})`)}`;
     }
 
 

@@ -49,6 +49,18 @@ export async function dockCommand(config: Config) {
     return '';
   };
 
+  const getChecksPill = (pr: PRData) => {
+    if (!pr.statusCheckRollup || pr.statusCheckRollup.length === 0) return '';
+    const states = pr.statusCheckRollup.map(s => s.state || s.conclusion || s.status);
+    if (states.includes('FAILURE') || states.includes('failure') || states.includes('action_required')) {
+      return ` ${colors.pill(` ${symbols.error.trim()} Checks `, colors.error, pc.bgRed)}`;
+    }
+    if (states.includes('PENDING') || states.includes('pending') || states.includes('in_progress')) {
+      return ` ${colors.pill(` ${symbols.loading.trim()} Checks `, colors.warning, pc.bgYellow)}`;
+    }
+    return ` ${colors.pill(` ${symbols.success.trim()} Checks `, colors.success, pc.bgGreen)}`;
+  };
+
   const planetData = await Promise.all(
     planets.map(async p => {
       const [branch, dirty] = await Promise.all([
@@ -79,7 +91,8 @@ export async function dockCommand(config: Config) {
     if (pr) {
       const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
       const reviewPill = getReviewPill(pr);
-      prStr = colors.info(` ${prIcon}${pr.number}${reviewPill}`);
+      const checksPill = getChecksPill(pr);
+      prStr = colors.info(` ${prIcon}${pr.number}${checksPill}${reviewPill}`);
     }
 
     console.log(
@@ -95,7 +108,8 @@ export async function dockCommand(config: Config) {
     for (const pr of prs.slice(0, 8)) {
       const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
       const reviewStatus = getReviewPill(pr);
-      const num = colors.info(`${prIcon} ${pr.number}${reviewStatus}`.padEnd(30));
+      const checksStatus = getChecksPill(pr);
+      const num = colors.info(`${prIcon} ${pr.number}${checksStatus}${reviewStatus}`.padEnd(30));
       const title = pr.title.length > 60 ? pr.title.slice(0, 58) + '…' : pr.title;
       console.log(`  ${num} ${title}`);
     }
