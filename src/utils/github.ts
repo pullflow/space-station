@@ -17,8 +17,8 @@ export interface PRData {
     status: string;
     conclusion: string;
   }[];
-  reviews?: any[];
-  reviewRequests?: any[];
+  reviews?: { author: { login: string }; state: string }[];
+  reviewRequests?: { login: string }[];
 }
 
 export async function listPRs(repo: string, filter: 'authored' | 'review' | 'assigned' | 'all' = 'all'): Promise<PRData[]> {
@@ -32,7 +32,7 @@ export async function listPRs(repo: string, filter: 'authored' | 'review' | 'ass
     'pr', 'list',
     '-R', repo,
     '--search', search,
-    '--json', 'number,title,state,headRefName,url,body,labels,statusCheckRollup,author,assignees,isDraft,reviewDecision',
+    '--json', 'number,title,state,headRefName,url,body,labels,statusCheckRollup,author,assignees,isDraft,reviewDecision,reviews,reviewRequests',
     '--limit', '100'
   ]);
 

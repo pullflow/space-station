@@ -3,7 +3,9 @@ import type { Config } from '../config';
 import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
 import { listPRs } from '../utils/github';
+import type { PRData } from '../utils/github';
 import { colors, symbols } from '../ui/theme';
+import pc from 'picocolors';
 
 export async function statusCommand(config: Config) {
   const s = spinner();
@@ -12,6 +14,20 @@ export async function statusCommand(config: Config) {
   const planets = getPlanets(config);
   const prs = await listPRs(config.repo, 'all');
   
+  const getReviewPill = (pr: PRData) => {
+    if (pr.reviewDecision === 'APPROVED') {
+      const approver = pr.reviews?.find((r: any) => r.state === 'APPROVED')?.author?.login || '???';
+      return ` ${colors.pill(` \uf00c ${approver} `, colors.success, pc.bgGreen)}`;
+    }
+    
+    if (pr.reviewRequests && pr.reviewRequests.length > 0) {
+      const requested = pr.reviewRequests[0]?.login || '???';
+      return ` ${colors.pill(` \uf110 ${requested} `, colors.warning, pc.bgYellow)}`;
+    }
+    
+    return '';
+  };
+
   s.stop('Universe scan complete');
 
   let outputLines = [];
@@ -32,8 +48,8 @@ export async function statusCommand(config: Config) {
     let prInfo = '';
     if (planetPR) {
       const prIcon = planetPR.isDraft ? symbols.prDraft : symbols.pr;
-      const approval = planetPR.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
-      prInfo = ` ${colors.success(`${prIcon} ${planetPR.number}${approval} (${planetPR.state})`)}`;
+      const reviewPill = getReviewPill(planetPR);
+      prInfo = ` ${colors.success(`${prIcon} ${planetPR.number}${reviewPill} (${planetPR.state})`)}`;
     }
 
 

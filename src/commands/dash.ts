@@ -49,6 +49,20 @@ export async function dashCommand(config: Config) {
         }))
       ]);
 
+      const getReviewPill = (pr: PRData) => {
+        if (pr.reviewDecision === 'APPROVED') {
+          const approver = pr.reviews?.find((r: any) => r.state === 'APPROVED')?.author?.login || '???';
+          return ` ${colors.pill(` \uf00c ${approver} `, colors.success, pc.bgGreen)}`;
+        }
+        
+        if (pr.reviewRequests && pr.reviewRequests.length > 0) {
+          const requested = pr.reviewRequests[0]?.login || '???';
+          return ` ${colors.pill(` \uf110 ${requested} `, colors.warning, pc.bgYellow)}`;
+        }
+        
+        return '';
+      };
+
       // Only clear and render once we have all the data
       process.stdout.write(clear);
       console.log(colors.primary(` 🛸 SPACE STATION MISSION DASHBOARD`));
@@ -74,9 +88,10 @@ export async function dashCommand(config: Config) {
         let prInfo = '';
         if (planetPR) {
           const prIcon = planetPR.isDraft ? symbols.prDraft : symbols.pr;
-          const approval = planetPR.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
-          prInfo = pc.cyan(` ${prIcon} ${planetPR.number}${approval}`);
+          const reviewPill = getReviewPill(planetPR);
+          prInfo = pc.cyan(` ${prIcon}${planetPR.number}${reviewPill}`);
         }
+
 
         const branchStr = planet.branch.length > 25 ? planet.branch.slice(0, 22) + '...' : planet.branch;
         
@@ -126,9 +141,9 @@ export async function dashCommand(config: Config) {
           }
           
           const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
-          const approvalStatus = pr.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
+          const reviewStatus = getReviewPill(pr);
 
-          console.log(`    ${pc.bold(pc.yellow(`${prIcon} ${pr.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}${ciStatus}${approvalStatus}`);
+          console.log(`    ${pc.bold(pc.yellow(`${prIcon} ${pr.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}${ciStatus}${reviewStatus}`);
         });
       }
 

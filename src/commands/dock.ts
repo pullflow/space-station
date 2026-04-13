@@ -3,6 +3,7 @@ import type { Config } from '../config';
 import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
 import { listPRs, listIssues } from '../utils/github';
+import type { PRData } from '../utils/github';
 import { colors, symbols } from '../ui/theme';
 import pc from 'picocolors';
 
@@ -34,6 +35,20 @@ export async function dockCommand(config: Config) {
     listIssues(config.repo),
   ]);
 
+  const getReviewPill = (pr: PRData) => {
+    if (pr.reviewDecision === 'APPROVED') {
+      const approver = pr.reviews?.find((r: any) => r.state === 'APPROVED')?.author?.login || '???';
+      return ` ${colors.pill(` \uf00c ${approver} `, colors.success, pc.bgGreen)}`;
+    }
+    
+    if (pr.reviewRequests && pr.reviewRequests.length > 0) {
+      const requested = pr.reviewRequests[0]?.login || '???';
+      return ` ${colors.pill(` \uf110 ${requested} `, colors.warning, pc.bgYellow)}`;
+    }
+    
+    return '';
+  };
+
   const planetData = await Promise.all(
     planets.map(async p => {
       const [branch, dirty] = await Promise.all([
@@ -63,8 +78,8 @@ export async function dockCommand(config: Config) {
     let prStr = '';
     if (pr) {
       const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
-      const approval = pr.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
-      prStr = colors.info(` ${prIcon} ${pr.number}${approval}`);
+      const reviewPill = getReviewPill(pr);
+      prStr = colors.info(` ${prIcon}${pr.number}${reviewPill}`);
     }
 
     console.log(
@@ -79,8 +94,8 @@ export async function dockCommand(config: Config) {
   } else {
     for (const pr of prs.slice(0, 8)) {
       const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
-      const approval = pr.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
-      const num = colors.info(`${prIcon} ${pr.number}${approval}`.padEnd(16));
+      const reviewStatus = getReviewPill(pr);
+      const num = colors.info(`${prIcon} ${pr.number}${reviewStatus}`.padEnd(30));
       const title = pr.title.length > 60 ? pr.title.slice(0, 58) + '…' : pr.title;
       console.log(`  ${num} ${title}`);
     }

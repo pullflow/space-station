@@ -3,10 +3,12 @@ import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
 import { colors, symbols } from '../ui/theme';
 import { listPRs, getPRDetails } from '../utils/github';
+import type { PRData } from '../utils/github';
 import { getPlanets, PLANET_NAMES } from '../utils/planets';
 import { fetchHub, checkout, mergeMain } from '../utils/git';
 import { join } from 'path';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import pc from 'picocolors';
 
 export async function prsCommand(config: Config, projectRoot: string, prNumber?: string, planetName?: string) {
   if (prNumber) {
@@ -26,17 +28,32 @@ export async function prsCommand(config: Config, projectRoot: string, prNumber?:
     return;
   }
 
+  const getReviewPill = (pr: PRData) => {
+    if (pr.reviewDecision === 'APPROVED') {
+      const approver = pr.reviews?.find((r: any) => r.state === 'APPROVED')?.author?.login || '???';
+      return ` ${colors.pill(` \uf00c ${approver} `, colors.success, pc.bgGreen)}`;
+    }
+    
+    if (pr.reviewRequests && pr.reviewRequests.length > 0) {
+      const requested = pr.reviewRequests[0]?.login || '???';
+      return ` ${colors.pill(` \uf110 ${requested} `, colors.warning, pc.bgYellow)}`;
+    }
+    
+    return '';
+  };
+
   const choice = await select({
     message: 'Select a PR to explore or checkout:',
     options: prs.map(pr => {
       const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
-      const approval = pr.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
+      const reviewStatus = getReviewPill(pr);
       return {
         value: pr.number.toString(),
-        label: `${prIcon} ${pr.number}${approval}: ${pr.title}`,
+        label: `${prIcon} ${pr.number}${reviewStatus}: ${pr.title}`,
         hint: pr.state
       };
     }),
+
   });
 
   if (isCancel(choice)) return;
