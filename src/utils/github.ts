@@ -7,6 +7,10 @@ export interface PRData {
   headRefName: string;
   url: string;
   body: string;
+  isDraft: boolean;
+  reviewDecision?: string;
+  author?: { login: string };
+  assignees?: { login: string }[];
   labels: { name: string }[];
   statusCheckRollup?: {
     state: string;
@@ -17,17 +21,18 @@ export interface PRData {
   reviewRequests?: any[];
 }
 
-export async function listPRs(repo: string, filter: 'authored' | 'review' | 'all' = 'all'): Promise<PRData[]> {
+export async function listPRs(repo: string, filter: 'authored' | 'review' | 'assigned' | 'all' = 'all'): Promise<PRData[]> {
   let search = 'state:open ';
   if (filter === 'authored') search += 'author:@me ';
   else if (filter === 'review') search += 'review-requested:@me ';
-  else search += 'author:@me OR review-requested:@me ';
+  else if (filter === 'assigned') search += 'assignee:@me ';
+  else search += 'author:@me OR review-requested:@me OR assignee:@me ';
 
   const { stdout, exitCode } = await run('gh', [
     'pr', 'list',
     '-R', repo,
     '--search', search,
-    '--json', 'number,title,state,headRefName,url,body,labels,statusCheckRollup',
+    '--json', 'number,title,state,headRefName,url,body,labels,statusCheckRollup,author,assignees,isDraft,reviewDecision',
     '--limit', '100'
   ]);
 
@@ -44,7 +49,7 @@ export async function getPRDetails(number: number, repo: string): Promise<PRData
     'pr', 'view',
     number.toString(),
     '-R', repo,
-    '--json', 'number,title,state,headRefName,url,body,statusCheckRollup,reviews,reviewRequests'
+    '--json', 'number,title,state,headRefName,url,body,statusCheckRollup,reviews,reviewRequests,author,assignees,isDraft,reviewDecision'
   ]);
 
   if (exitCode !== 0) return null;

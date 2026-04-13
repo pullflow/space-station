@@ -22,17 +22,21 @@ export async function prsCommand(config: Config, projectRoot: string, prNumber?:
   s.stop('PRs fetched');
 
   if (prs.length === 0) {
-    note('No open PRs found assigned to you or authored by you.', 'GitHub');
+    note('No open PRs found assigned to you, authored by you, or requesting your review.', 'GitHub');
     return;
   }
 
   const choice = await select({
     message: 'Select a PR to explore or checkout:',
-    options: prs.map(pr => ({
-      value: pr.number.toString(),
-      label: `#${pr.number}: ${pr.title}`,
-      hint: pr.state
-    })),
+    options: prs.map(pr => {
+      const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
+      const approval = pr.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
+      return {
+        value: pr.number.toString(),
+        label: `${prIcon} ${pr.number}${approval}: ${pr.title}`,
+        hint: pr.state
+      };
+    }),
   });
 
   if (isCancel(choice)) return;

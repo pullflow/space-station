@@ -19,22 +19,27 @@ export async function statusCommand(config: Config) {
   for (const planet of planets) {
     const branch = await getBranch(planet.dir);
     const gitStatus = await getStatus(planet.dir);
+    const planetPR = prs.find(pr => pr.headRefName === branch);
     
     let statusLabel = colors.success(`${symbols.success} Available`);
     if (gitStatus) {
       const lines = gitStatus.split('\n').filter(l => l.trim() !== '');
       statusLabel = colors.warning(`${symbols.warning} Active:${lines.length}`);
+    } else if (planetPR) {
+      statusLabel = colors.info(`${symbols.computer} In Use`);
     }
 
-    const planetPR = prs.find(pr => pr.headRefName === branch);
-    let prInfo = colors.error('No PR');
+    let prInfo = '';
     if (planetPR) {
-      prInfo = colors.success(`PR#${planetPR.number} (${planetPR.state})`);
+      const prIcon = planetPR.isDraft ? symbols.prDraft : symbols.pr;
+      const approval = planetPR.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
+      prInfo = ` ${colors.success(`${prIcon} ${planetPR.number}${approval} (${planetPR.state})`)}`;
     }
+
 
     const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
     
-    outputLines.push(`${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))}: ${colors.info(branch.padEnd(20))} [${statusLabel}] ${prInfo}`);
+    outputLines.push(`${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))}: ${colors.info(branch)}${prInfo} [${statusLabel}]`);
   }
 
   note(outputLines.join('\n'), 'Planetary Status');

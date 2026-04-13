@@ -57,6 +57,8 @@ export async function dashCommand(config: Config) {
       // --- Planets Section ---
       console.log(pc.bold(pc.blue(`  ${symbols.status} PLANETS`)));
       for (const planet of planetsData) {
+        const planetPR = prs.find(pr => pr.headRefName === planet.branch);
+        
         let statusIcon = colors.success(symbols.success);
         let statusText = pc.green('Ready');
         
@@ -64,12 +66,16 @@ export async function dashCommand(config: Config) {
           statusIcon = colors.warning(symbols.warning);
           const lines = planet.gitStatus.split('\n').filter(l => l.trim() !== '');
           statusText = pc.yellow(`Active (${lines.length})`);
+        } else if (planetPR) {
+          statusIcon = colors.info(symbols.computer);
+          statusText = pc.cyan('In Use');
         }
 
-        const planetPR = prs.find(pr => pr.headRefName === planet.branch);
-        let prInfo = colors.dim(' (No PR)');
+        let prInfo = '';
         if (planetPR) {
-          prInfo = pc.cyan(` (PR #${planetPR.number})`);
+          const prIcon = planetPR.isDraft ? symbols.prDraft : symbols.pr;
+          const approval = planetPR.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
+          prInfo = pc.cyan(` ${prIcon} ${planetPR.number}${approval}`);
         }
 
         const branchStr = planet.branch.length > 25 ? planet.branch.slice(0, 22) + '...' : planet.branch;
@@ -78,7 +84,7 @@ export async function dashCommand(config: Config) {
         const planetIcon = (symbols as any)[planet.name]?.trim() || symbols.unknown.trim();
 
         // Layout: Icon Name Status Branch PR
-        process.stdout.write(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(10))} ${statusIcon} ${statusText.padEnd(12)} ${pc.white(branchStr.padEnd(25))} ${prInfo}\n`);
+        process.stdout.write(`    ${planetColor(planetIcon)} ${planetColor(planet.name.padEnd(10))} ${statusIcon} ${statusText.padEnd(12)} ${pc.white(branchStr)}${prInfo}\n`);
       }
 
       console.log('');
@@ -91,7 +97,7 @@ export async function dashCommand(config: Config) {
         issues.forEach(issue => {
           const labels = issue.labels.map((l: any) => formatLabel(l.name)).join(' ');
           const title = issue.title.length > 60 ? issue.title.slice(0, 57) + '...' : issue.title;
-          console.log(`    ${pc.bold(pc.magenta(`#${issue.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}`);
+          console.log(`    ${pc.bold(pc.magenta(`${symbols.issue} ${issue.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}`);
         });
       }
 
@@ -111,15 +117,18 @@ export async function dashCommand(config: Config) {
           if (pr.statusCheckRollup && pr.statusCheckRollup.length > 0) {
             const states = pr.statusCheckRollup.map(s => s.state || s.conclusion || s.status);
             if (states.includes('FAILURE') || states.includes('failure') || states.includes('action_required')) {
-              ciStatus = colors.error(` ${symbols.error}CI FAIL`);
+              ciStatus = colors.error(` ${symbols.error} Checks FAIL`);
             } else if (states.includes('PENDING') || states.includes('pending') || states.includes('in_progress')) {
-              ciStatus = colors.warning(` ${symbols.loading}CI PENDING`);
+              ciStatus = colors.warning(` ${symbols.loading} Checks PENDING`);
             } else {
-              ciStatus = colors.success(` ${symbols.success}CI PASS`);
+              ciStatus = colors.success(` ${symbols.success} Checks`);
             }
           }
+          
+          const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
+          const approvalStatus = pr.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
 
-          console.log(`    ${pc.bold(pc.yellow(`#${pr.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}${ciStatus}`);
+          console.log(`    ${pc.bold(pc.yellow(`${prIcon} ${pr.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}${ciStatus}${approvalStatus}`);
         });
       }
 

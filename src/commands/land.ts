@@ -49,7 +49,7 @@ export async function landCommand(config: Config, projectRoot: string, planetArg
     resolvedPlanetName = choice as string;
   }
 
-  intro(colors.primary(`${symbols.rocket} Landing on ${colors.info(resolvedPlanetName)}`));
+  intro(`${colors.primary(`${symbols.rocket} Landing on`)} ${colors.info(resolvedPlanetName)}`);
 
   // 1. Reset the planet (forced)
   // Note: resetCommand already does its own intro/outro if not careful, 

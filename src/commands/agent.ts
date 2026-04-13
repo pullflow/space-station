@@ -55,7 +55,7 @@ export async function agentCommand(config: Config, planetName?: string) {
     return;
   }
 
-  intro(colors.primary(`${symbols.agent} Launching Agent on ${colors.info(resolvedPlanetName)}`));
+  intro(`${colors.primary(`${symbols.agent} Launching Agent on`)} ${colors.info(resolvedPlanetName)}`);
   
   const agentParts = config.default_agent.split(' ');
   const cmd = agentParts[0];

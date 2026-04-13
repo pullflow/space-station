@@ -51,13 +51,24 @@ export async function dockCommand(config: Config) {
   for (const { planet, branch, dirty } of planetData) {
     const planetColor = (colors.planet as any)[planet.name] || colors.planet.unknown;
     const branchStr = branch.length > 25 ? branch.slice(0, 22) + '...' : branch;
-    const stateStr = dirty
-      ? colors.warning(`${symbols.warning} active`)
-      : colors.success(`${symbols.success} free`);
     const pr = prs.find(p => p.headRefName === branch);
-    const prStr = pr ? colors.info(`${symbols.pr} PR#${pr.number}`) : pc.dim('no PR');
+    
+    let stateStr = colors.success(`${symbols.success} free`);
+    if (dirty) {
+      stateStr = colors.warning(`${symbols.warning} active`);
+    } else if (pr) {
+      stateStr = colors.info(`${symbols.computer} in use`);
+    }
+
+    let prStr = '';
+    if (pr) {
+      const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
+      const approval = pr.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
+      prStr = colors.info(` ${prIcon} ${pr.number}${approval}`);
+    }
+
     console.log(
-      `  ${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))} ${pc.dim(branchStr.padEnd(25))} ${stateStr.padEnd(14)} ${prStr}`
+      `  ${planetColor(planet.emoji)} ${planetColor(planet.name.padEnd(10))} ${pc.dim(branchStr)} ${stateStr.padEnd(14)}${prStr}`
     );
   }
 
@@ -67,7 +78,9 @@ export async function dockCommand(config: Config) {
     console.log(pc.dim('  No open PRs'));
   } else {
     for (const pr of prs.slice(0, 8)) {
-      const num = colors.info(`#${pr.number}`.padEnd(6));
+      const prIcon = pr.isDraft ? symbols.prDraft : symbols.pr;
+      const approval = pr.reviewDecision === 'APPROVED' ? ` ${colors.success(symbols.success)} Review` : '';
+      const num = colors.info(`${prIcon} ${pr.number}${approval}`.padEnd(16));
       const title = pr.title.length > 60 ? pr.title.slice(0, 58) + '…' : pr.title;
       console.log(`  ${num} ${title}`);
     }
@@ -80,7 +93,7 @@ export async function dockCommand(config: Config) {
     console.log(pc.dim('  No assigned issues'));
   } else {
     for (const issue of issues.slice(0, 8)) {
-      const num = colors.warning(`#${issue.number}`.padEnd(6));
+      const num = colors.warning(`${symbols.issue} ${issue.number}`.padEnd(10));
       const title = issue.title.length > 60 ? issue.title.slice(0, 58) + '…' : issue.title;
       console.log(`  ${num} ${title}`);
     }
