@@ -43,17 +43,23 @@ export async function prsCommand(config: Config, projectRoot: string, prNumber?:
     };
 
     const getChecksPill = (pr: PRData) => {
-    if (!pr.statusCheckRollup || pr.statusCheckRollup.length === 0) return '';
-    const states = pr.statusCheckRollup.map(s => s.state || s.conclusion || s.status);
-    if (states.includes('FAILURE') || states.includes('failure') || states.includes('action_required')) {
-      return ` ${colors.pill(` ${symbols.error.trim()} Checks `, colors.error, pc.bgRed)}`;
-    }
-    if (states.includes('PENDING') || states.includes('pending') || states.includes('in_progress')) {
-      return ` ${colors.pill(` ${symbols.loading.trim()} Checks `, colors.warning, pc.bgYellow)}`;
-    }
-    return ` ${colors.pill(` ${symbols.success.trim()} Checks `, colors.success, pc.bgGreen)}`;
-    };
+      if (!pr.statusCheckRollup || pr.statusCheckRollup.length === 0) return '';
+      const states = pr.statusCheckRollup.map(s => (s.state || s.conclusion || s.status || '').toUpperCase());
 
+      if (states.some(s => ['FAILURE', 'ERROR', 'ACTION_REQUIRED', 'START_UP_FAILURE', 'STALE', 'TIMED_OUT'].includes(s))) {
+        return ` ${colors.pill(` ${symbols.error.trim()} Checks `, colors.error, pc.bgRed)}`;
+      }
+
+      if (states.some(s => ['PENDING', 'IN_PROGRESS', 'QUEUED', 'WAITING', 'REQUESTED'].includes(s)) || states.some(s => s === '' || s === 'null')) {
+        return ` ${colors.pill(` ${symbols.loading.trim()} Checks `, colors.warning, pc.bgYellow)}`;
+      }
+
+      if (states.every(s => ['SUCCESS', 'COMPLETED', 'NEUTRAL', 'SKIPPED'].includes(s))) {
+        return ` ${colors.pill(` ${symbols.success.trim()} Checks `, colors.success, pc.bgGreen)}`;
+      }
+
+      return '';
+    };
     const choice = await select({
     message: 'Select a PR to explore or checkout:',
     options: prs.map(pr => {
