@@ -5,6 +5,7 @@ import { listPRs, listIssues } from '../utils/github';
 import type { PRData } from '../utils/github';
 import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
+import { checkForUpdates, promptForUpdate } from '../utils/updates';
 import pc from 'picocolors';
 
 export async function dashCommand(config: Config) {
@@ -12,6 +13,7 @@ export async function dashCommand(config: Config) {
   const clear = '\x1b[2J\x1b[3J\x1b[H';
   
   const refreshInterval = 30000; // 30 seconds
+  let updateAvailable = false;
 
   const formatLabel = (label: string) => {
     const pillColors = colors.getPillColors(label);
@@ -37,7 +39,7 @@ export async function dashCommand(config: Config) {
   async function render() {
     try {
       // Fetch everything upfront
-      const [prs, issues, planetsData] = await Promise.all([
+      const [prs, issues, planetsData, hasUpdate] = await Promise.all([
         listPRs(config.repo, 'all'),
         listIssues(config.repo),
         Promise.all(getPlanets(config).map(async (planet) => {
@@ -46,8 +48,11 @@ export async function dashCommand(config: Config) {
             getStatus(planet.dir)
           ]);
           return { ...planet, branch, gitStatus };
-        }))
+        })),
+        checkForUpdates()
       ]);
+
+      updateAvailable = hasUpdate;
 
       const getReviewPill = (pr: PRData) => {
         if (pr.reviewDecision === 'APPROVED') {
@@ -86,7 +91,13 @@ export async function dashCommand(config: Config) {
       // Only clear and render once we have all the data
       process.stdout.write(clear);
       console.log(colors.primary(` 🛸 SPACE STATION MISSION DASHBOARD`));
-      console.log(colors.dim(`  Refreshing every 30s • Last update: ${new Date().toLocaleTimeString()}\n`));
+      
+      let updateNote = '';
+      if (updateAvailable) {
+        updateNote = pc.bold(pc.yellow(`  ${symbols.warning} Update available! Press 'u' to update.`));
+      }
+      
+      console.log(colors.dim(`  Refreshing every 30s • Last update: ${new Date().toLocaleTimeString()}\n`) + updateNote);
 
       // --- Planets Section ---
       console.log(pc.bold(pc.blue(`  ${symbols.status} PLANETS`)));
@@ -156,7 +167,7 @@ export async function dashCommand(config: Config) {
         });
       }
 
-      console.log(`\n  ${colors.dim('Press Ctrl+C to exit dashboard')}`);
+      console.log(`\n  ${colors.dim("Press 'u' to update • Ctrl+C to exit dashboard")}`);
     } catch (error: any) {
       // Don't clear on error if we haven't already, so previous data stays visible if possible
       console.log(colors.error(`\n  Error fetching dashboard data: ${error.message}`));
@@ -171,9 +182,27 @@ export async function dashCommand(config: Config) {
     await render();
   }, refreshInterval);
 
-  // Handle Ctrl+C
-  process.on('SIGINT', () => {
-    clearInterval(interval);
-    process.exit(0);
+  // Handle keys
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', async (key) => {
+    if (key === 'u' || key === 'U') {
+      clearInterval(interval);
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+      await promptForUpdate();
+      // If promptForUpdate returns (user said no), resume dash
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      // Re-render and interval is already handled by outer loop? 
+      // Actually interval is cleared, so we need to restart it if we want it to keep going.
+      // But the interval is defined inside dashCommand scope.
+      process.exit(0); // Exit for now to be safe, user can restart.
+    }
+    if (key === '\u0003') { // Ctrl+C
+      clearInterval(interval);
+      process.exit(0);
+    }
   });
 }

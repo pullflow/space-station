@@ -5,6 +5,7 @@ import { colors, symbols } from './ui/theme';
 import { loadConfig, findProjectRoot } from './config';
 import { join } from 'path';
 import { createRequire } from 'module';
+import { checkForUpdates, promptForUpdate } from './utils/updates';
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
 
@@ -149,6 +150,8 @@ async function main() {
       await initCommand(projectRoot);
       return;
     }
+
+    await promptForUpdate();
 
     const choice = await select({
       message: 'What would you like to do?',
