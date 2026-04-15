@@ -1,42 +1,18 @@
-import { join } from 'path';
-import { existsSync, readFileSync } from 'fs';
-import { intro, outro, spinner, select, isCancel } from '@clack/prompts';
+import { intro, select, isCancel } from '@clack/prompts';
 import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
 import { colors, symbols } from '../ui/theme';
 import { resetCommand } from './reset';
 import { agentCommand } from './agent';
+import { detectPlanet } from '../utils/planets';
 
 export async function landCommand(config: Config, projectRoot: string, planetArg?: string) {
-  const planetsDir = getPlanetsDir(config);
   let resolvedPlanetName: string | undefined = planetArg;
 
   if (!resolvedPlanetName) {
-    // Try to detect if we are in a planet directory
-    const cwd = process.cwd();
-    const envPlanetPath = join(cwd, '.env.planet');
-    
-    if (existsSync(envPlanetPath)) {
-      try {
-        const content = readFileSync(envPlanetPath, 'utf8');
-        const nameMatch = content.match(/^SS_PLANET_NAME=(.+)$/m);
-        if (nameMatch) {
-          resolvedPlanetName = nameMatch[1];
-        }
-      } catch (e) {
-        // Fallback to path detection
-      }
-    }
-
-    if (!resolvedPlanetName) {
-      // Fallback: check if CWD is a subdirectory of any planet
-      for (const p of config.planets) {
-        const pDir = join(planetsDir, p);
-        if (cwd.startsWith(pDir)) {
-          resolvedPlanetName = p;
-          break;
-        }
-      }
+    const detected = detectPlanet(config);
+    if (detected) {
+      resolvedPlanetName = detected.name;
     }
   }
 

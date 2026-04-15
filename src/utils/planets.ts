@@ -1,5 +1,5 @@
-import { readdirSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readdirSync, existsSync, readFileSync, realpathSync } from 'fs';
+import { join, dirname, sep } from 'path';
 import { symbols } from '../ui/theme';
 import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
@@ -50,4 +50,62 @@ export function getPlanets(config: Config): Planet[] {
         emoji
       };
     });
+}
+
+export function detectPlanet(config: Config): { name: string; dir: string } | null {
+  // 1. Check environment variable (set if already in an ss-launched session)
+  if (process.env.SS_PLANET_NAME) {
+    const planetsDir = getPlanetsDir(config);
+    return {
+      name: process.env.SS_PLANET_NAME,
+      dir: join(planetsDir, process.env.SS_PLANET_NAME)
+    };
+  }
+
+  const cwd = process.cwd();
+  let currentDir = cwd;
+
+  // 2. Walk up looking for .env.planet
+  while (currentDir !== dirname(currentDir)) {
+    const envPath = join(currentDir, '.env.planet');
+    if (existsSync(envPath)) {
+      try {
+        const content = readFileSync(envPath, 'utf8');
+        const nameMatch = content.match(/^SS_PLANET_NAME=(.+)$/m);
+        if (nameMatch && nameMatch[1]) {
+          return {
+            name: nameMatch[1],
+            dir: currentDir
+          };
+        }
+      } catch (e) {
+        // Ignore errors and keep walking/falling back
+      }
+    }
+    currentDir = dirname(currentDir);
+  }
+
+  // 3. Fallback: Path-based detection against known planets
+  try {
+    const realCwd = realpathSync(cwd);
+    const planetsDir = getPlanetsDir(config);
+
+    for (const p of config.planets) {
+      const pDir = join(planetsDir, p);
+      if (!existsSync(pDir)) continue;
+      
+      const realPDir = realpathSync(pDir);
+      // Check if realCwd is realPDir or a subdirectory of it
+      if (realCwd === realPDir || realCwd.startsWith(realPDir + sep)) {
+        return {
+          name: p,
+          dir: realPDir
+        };
+      }
+    }
+  } catch (e) {
+    // Ignore realpath errors
+  }
+
+  return null;
 }
