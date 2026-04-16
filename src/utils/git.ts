@@ -64,7 +64,15 @@ async function addWorktreeFull(hubDir: string, planetDir: string, branch: string
     await run('git', ['branch', branch, `origin/${branch}`], hubDir);
   }
 
-  return await run('git', ['worktree', 'add', '--detach', planetDir, branch], hubDir);
+  const result = await run('git', ['worktree', 'add', '--detach', planetDir, branch], hubDir);
+
+  // Bare repos set core.bare=true which propagates to worktrees via
+  // extensions.worktreeConfig. Override it so git recognises the worktree.
+  if (result.exitCode === 0) {
+    await run('git', ['config', '--worktree', 'core.bare', 'false'], planetDir);
+  }
+
+  return result;
 }
 
 export async function removeWorktree(hubDir: string, planetDir: string): Promise<void> {
