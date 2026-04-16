@@ -18,6 +18,7 @@ interface HookContext {
 
 export interface DashboardState {
   prs: Map<number, PRSnapshot>;
+  initialized: boolean;
 }
 
 interface PRSnapshot {
@@ -111,7 +112,7 @@ async function executeHook(hooksDir: string, ctx: HookContext) {
 }
 
 export function createDashboardState(): DashboardState {
-  return { prs: new Map() };
+  return { prs: new Map(), initialized: false };
 }
 
 export async function detectAndFireHooks(
@@ -124,18 +125,41 @@ export async function detectAndFireHooks(
   const hooksDir = getHooksDir(spaceStationDir);
   if (!existsSync(hooksDir)) return snapshotAll(prs);
 
-  const newState: DashboardState = { prs: new Map() };
+  // First render is baseline only — no hooks fire
+  if (!prevState.initialized) return snapshotAll(prs);
+
+  const newState: DashboardState = { prs: new Map(), initialized: true };
 
   for (const pr of prs) {
     const snap = snapshotPR(pr);
     newState.prs.set(pr.number, snap);
 
     const prev = prevState.prs.get(pr.number);
-    if (!prev) continue; // first time seeing this PR, no event
 
     const ctx = (event: HookEvent, extra?: Record<string, string>): HookContext => ({
       event, repo, pr, extra,
     });
+
+    if (!prev) {
+      // New PR appeared — fire hooks for current state
+      if (currentUser && snap.assignees.includes(currentUser)) {
+        executeHook(hooksDir, ctx('pr_assigned'));
+      }
+      if (currentUser && snap.reviewRequests.includes(currentUser)) {
+        executeHook(hooksDir, ctx('pr_review_requested'));
+      }
+      if (snap.reviewDecision === 'APPROVED') {
+        const approver = snap.reviews.find(r => r.state === 'APPROVED')?.login || '';
+        executeHook(hooksDir, ctx('pr_approved', { SS_PR_REVIEWER: approver }));
+      }
+      if (snap.checksState === 'passing') {
+        executeHook(hooksDir, ctx('pr_checks_passed'));
+      }
+      if (snap.checksState === 'failing') {
+        executeHook(hooksDir, ctx('pr_checks_failed'));
+      }
+      continue;
+    }
 
     // PR_ASSIGNED: new assignee that is current user
     if (currentUser) {
@@ -203,7 +227,7 @@ export function getActiveHooks(spaceStationDir: string): HookInfo[] {
 }
 
 function snapshotAll(prs: PRData[]): DashboardState {
-  const state: DashboardState = { prs: new Map() };
+  const state: DashboardState = { prs: new Map(), initialized: true };
   for (const pr of prs) {
     state.prs.set(pr.number, snapshotPR(pr));
   }
