@@ -1,19 +1,23 @@
 import { intro, spinner, note } from '@clack/prompts';
 import type { Config } from '../config';
 import { colors, symbols } from '../ui/theme';
-import { listPRs, listIssues } from '../utils/github';
+import { listPRs, listIssues, getCurrentUser } from '../utils/github';
 import type { PRData } from '../utils/github';
 import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
 import { checkForUpdates, promptForUpdate } from '../utils/updates';
+import { createDashboardState, detectAndFireHooks, getActiveHooks } from '../utils/hooks';
+import type { DashboardState } from '../utils/hooks';
 import pc from 'picocolors';
 
 export async function dashCommand(config: Config) {
   // Clear screen and move cursor to top-left
   const clear = '\x1b[2J\x1b[3J\x1b[H';
-  
+
   const refreshInterval = 30000; // 30 seconds
   let updateAvailable = false;
+  let hookState: DashboardState = createDashboardState();
+  const currentUser = await getCurrentUser();
 
   const formatLabel = (label: string) => {
     const pillColors = colors.getPillColors(label);
@@ -53,6 +57,9 @@ export async function dashCommand(config: Config) {
       ]);
 
       updateAvailable = hasUpdate;
+
+      // Detect state changes and fire hooks
+      hookState = await detectAndFireHooks(prs, hookState, config.repo, config.spacestation_dir, currentUser || undefined);
 
       const getReviewPill = (pr: PRData) => {
         if (pr.reviewDecision === 'APPROVED') {
@@ -165,6 +172,27 @@ export async function dashCommand(config: Config) {
 
           console.log(`    ${pc.bold(pc.yellow(`${prIcon} ${pr.number.toString().padEnd(5)}`))} ${pc.white(title.padEnd(60))} ${labels}${checksStatus}${reviewStatus}`);
         });
+      }
+
+      // --- Hooks Section ---
+      const hooks = getActiveHooks(config.spacestation_dir);
+      const activeCount = hooks.filter(h => h.active && h.executable).length;
+      console.log('');
+      console.log(pc.bold(pc.cyan(`  ${symbols.loading} HOOKS `)) + pc.cyan(activeCount));
+      if (activeCount === 0 && hooks.every(h => !h.active)) {
+        console.log(colors.dim('    No hooks installed. See hooks/README.md'));
+      } else {
+        for (const hook of hooks) {
+          if (hook.active) {
+            const icon = hook.executable
+              ? colors.success(symbols.success)
+              : colors.warning(symbols.warning);
+            const status = hook.executable
+              ? pc.green('active')
+              : pc.yellow('not executable');
+            console.log(`    ${icon} ${pc.white(hook.event.padEnd(25))} ${status}`);
+          }
+        }
       }
 
       console.log(`\n  ${colors.dim("Press 'u' to update • Ctrl+C to exit dashboard")}`);

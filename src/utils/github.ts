@@ -60,6 +60,12 @@ export async function getPRDetails(number: number, repo: string): Promise<PRData
   }
 }
 
+export async function getCurrentUser(): Promise<string | null> {
+  const { stdout, exitCode } = await run('gh', ['api', 'user', '--jq', '.login']);
+  if (exitCode !== 0) return null;
+  return stdout.trim() || null;
+}
+
 export async function listIssues(repo: string): Promise<any[]> {
   const { stdout, exitCode } = await run('gh', [
     'issue', 'list',

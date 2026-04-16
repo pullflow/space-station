@@ -26,3 +26,7 @@ planets/_shared/*
 !bun.lock
 !tsconfig.json
 !CLAUDE.md
+
+# Hooks - track only the README, user scripts stay local
+!hooks/
+!hooks/README.md
