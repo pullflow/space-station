@@ -53,19 +53,10 @@ export function getPlanets(config: Config): Planet[] {
 }
 
 export function detectPlanet(config: Config): { name: string; dir: string } | null {
-  // 1. Check environment variable (set if already in an ss-launched session)
-  if (process.env.SS_PLANET_NAME) {
-    const planetsDir = getPlanetsDir(config);
-    return {
-      name: process.env.SS_PLANET_NAME,
-      dir: join(planetsDir, process.env.SS_PLANET_NAME)
-    };
-  }
-
   const cwd = process.cwd();
   let currentDir = cwd;
 
-  // 2. Walk up looking for .env.planet
+  // 1. Walk up looking for .env.planet (SS-managed, authoritative)
   while (currentDir !== dirname(currentDir)) {
     const envPath = join(currentDir, '.env.planet');
     if (existsSync(envPath)) {
@@ -85,6 +76,15 @@ export function detectPlanet(config: Config): { name: string; dir: string } | nu
     currentDir = dirname(currentDir);
   }
 
+  // 2. Check environment variable (set if already in an ss-launched session)
+  if (process.env.SS_PLANET_NAME && config.planets.includes(process.env.SS_PLANET_NAME)) {
+    const planetsDir = getPlanetsDir(config);
+    return {
+      name: process.env.SS_PLANET_NAME,
+      dir: join(planetsDir, process.env.SS_PLANET_NAME)
+    };
+  }
+
   // 3. Fallback: Path-based detection against known planets
   try {
     const realCwd = realpathSync(cwd);
@@ -93,7 +93,7 @@ export function detectPlanet(config: Config): { name: string; dir: string } | nu
     for (const p of config.planets) {
       const pDir = join(planetsDir, p);
       if (!existsSync(pDir)) continue;
-      
+
       const realPDir = realpathSync(pDir);
       // Check if realCwd is realPDir or a subdirectory of it
       if (realCwd === realPDir || realCwd.startsWith(realPDir + sep)) {
