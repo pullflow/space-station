@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { intro, spinner, note } from '@clack/prompts';
 import type { Config } from '../config';
 import { colors, symbols } from '../ui/theme';
@@ -5,8 +6,8 @@ import { listPRs, listIssues, getCurrentUser } from '../utils/github';
 import type { PRData } from '../utils/github';
 import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
-import { checkForUpdates, promptForUpdate } from '../utils/updates';
-import { createDashboardState, detectAndFireHooks, getActiveHooks } from '../utils/hooks';
+import { checkForUpdates, updateCLI } from '../utils/updates';
+import { createDashboardState, detectAndFireHooks, getActiveHooks, getRecentHookLogs } from '../utils/hooks';
 import type { DashboardState } from '../utils/hooks';
 import pc from 'picocolors';
 
@@ -16,7 +17,7 @@ export async function dashCommand(config: Config) {
 
   const refreshInterval = 30000; // 30 seconds
   let updateAvailable = false;
-  let hookState: DashboardState = createDashboardState();
+  let hookState: DashboardState = createDashboardState(config.spacestation_dir);
   const currentUser = await getCurrentUser();
 
   const formatLabel = (label: string) => {
@@ -101,10 +102,10 @@ export async function dashCommand(config: Config) {
       
       let updateNote = '';
       if (updateAvailable) {
-        updateNote = pc.bold(pc.yellow(`  ${symbols.warning} Update available! Press 'u' to update.`));
+        updateNote = '\n' + pc.bold(pc.yellow(`  ${symbols.upgrade.trim()} A new version of Space Station is available. Press 'U' to upgrade.`));
       }
-      
-      console.log(colors.dim(`  Refreshing every 30s • Last update: ${new Date().toLocaleTimeString()}\n`) + updateNote);
+
+      console.log(colors.dim(`  Refreshing every 30s • Last update: ${new Date().toLocaleTimeString()}`) + updateNote + '\n');
 
       // --- Planets Section ---
       console.log(pc.bold(pc.blue(`  ${symbols.status} PLANETS`)));
@@ -193,9 +194,19 @@ export async function dashCommand(config: Config) {
             console.log(`    ${icon} ${pc.white(hook.event.padEnd(25))} ${status}`);
           }
         }
+        const recentLogs = getRecentHookLogs(config.spacestation_dir);
+        if (recentLogs.length > 0) {
+          console.log(colors.dim('    ─── recent activity ───'));
+          for (const line of recentLogs) {
+            console.log(colors.dim(`    ${line}`));
+          }
+        }
       }
 
-      console.log(`\n  ${colors.dim("Press 'u' to update • Ctrl+C to exit dashboard")}`);
+      const footerParts = [];
+      if (updateAvailable) footerParts.push("Press 'U' to upgrade");
+      footerParts.push('Ctrl+C to exit dashboard');
+      console.log(`\n  ${colors.dim(footerParts.join(' • '))}`);
     } catch (error: any) {
       // Don't clear on error if we haven't already, so previous data stays visible if possible
       console.log(colors.error(`\n  Error fetching dashboard data: ${error.message}`));
@@ -215,18 +226,21 @@ export async function dashCommand(config: Config) {
   process.stdin.resume();
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', async (key) => {
-    if (key === 'u' || key === 'U') {
+    if ((key === 'u' || key === 'U') && updateAvailable) {
       clearInterval(interval);
       process.stdin.setRawMode(false);
       process.stdin.pause();
-      await promptForUpdate();
-      // If promptForUpdate returns (user said no), resume dash
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
-      // Re-render and interval is already handled by outer loop? 
-      // Actually interval is cleared, so we need to restart it if we want it to keep going.
-      // But the interval is defined inside dashCommand scope.
-      process.exit(0); // Exit for now to be safe, user can restart.
+      const success = await updateCLI();
+      if (success) {
+        const scriptPath = join(config.spacestation_dir, 'ss');
+        const proc = Bun.spawn([scriptPath, 'dash'], {
+          stdin: 'inherit',
+          stdout: 'inherit',
+          stderr: 'inherit',
+        });
+        await proc.exited;
+      }
+      process.exit(0);
     }
     if (key === '\u0003') { // Ctrl+C
       clearInterval(interval);

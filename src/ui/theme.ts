@@ -84,4 +84,5 @@ export const symbols = {
   exit: '\uf08b ',
   console: '\uf120 ',
   computer: '\uf109 ',
+  upgrade: '\uf019 ',
 };

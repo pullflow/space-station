@@ -1,4 +1,4 @@
-import { existsSync, appendFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, appendFileSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import type { PRData } from './github';
 
@@ -111,7 +111,40 @@ async function executeHook(hooksDir: string, ctx: HookContext) {
   }
 }
 
-export function createDashboardState(): DashboardState {
+function statePath(spaceStationDir: string): string {
+  return join(getHooksDir(spaceStationDir), '.state.json');
+}
+
+function saveState(spaceStationDir: string, state: DashboardState) {
+  const data: Record<string, PRSnapshot> = {};
+  for (const [k, v] of state.prs) {
+    data[String(k)] = v;
+  }
+  try {
+    writeFileSync(statePath(spaceStationDir), JSON.stringify(data), 'utf8');
+  } catch {}
+}
+
+function loadState(spaceStationDir: string): DashboardState | null {
+  const path = statePath(spaceStationDir);
+  if (!existsSync(path)) return null;
+  try {
+    const data = JSON.parse(readFileSync(path, 'utf8'));
+    const prs = new Map<number, PRSnapshot>();
+    for (const [k, v] of Object.entries(data)) {
+      prs.set(Number(k), v as PRSnapshot);
+    }
+    return { prs, initialized: true };
+  } catch {
+    return null;
+  }
+}
+
+export function createDashboardState(spaceStationDir?: string): DashboardState {
+  if (spaceStationDir) {
+    const saved = loadState(spaceStationDir);
+    if (saved) return saved;
+  }
   return { prs: new Map(), initialized: false };
 }
 
@@ -123,10 +156,15 @@ export async function detectAndFireHooks(
   currentUser?: string,
 ): Promise<DashboardState> {
   const hooksDir = getHooksDir(spaceStationDir);
-  if (!existsSync(hooksDir)) return snapshotAll(prs);
+  if (!existsSync(hooksDir)) {
+    const s = snapshotAll(prs);
+    saveState(spaceStationDir, s);
+    return s;
+  }
 
-  // First render is baseline only — no hooks fire
-  if (!prevState.initialized) return snapshotAll(prs);
+  // No prior state — fire hooks for current state of all PRs
+  // This handles: first install, deleted state file, or dash restart after
+  // events happened while dash wasn't running
 
   const newState: DashboardState = { prs: new Map(), initialized: true };
 
@@ -142,6 +180,7 @@ export async function detectAndFireHooks(
 
     if (!prev) {
       // New PR appeared — fire hooks for current state
+      logToFile(hooksDir, `NEW PR#${pr.number} user=${currentUser} assignees=${snap.assignees.join(',')} reviewRequests=${snap.reviewRequests.join(',')}`);
       if (currentUser && snap.assignees.includes(currentUser)) {
         executeHook(hooksDir, ctx('pr_assigned'));
       }
@@ -196,6 +235,7 @@ export async function detectAndFireHooks(
     }
   }
 
+  saveState(spaceStationDir, newState);
   return newState;
 }
 
@@ -224,6 +264,18 @@ export function getActiveHooks(spaceStationDir: string): HookInfo[] {
     const executable = (stat.mode & 0o111) !== 0;
     return { event, active: true, executable };
   });
+}
+
+export function getRecentHookLogs(spaceStationDir: string, maxLines = 5): string[] {
+  const logPath = join(getHooksDir(spaceStationDir), '.log');
+  if (!existsSync(logPath)) return [];
+  try {
+    const content = readFileSync(logPath, 'utf8');
+    const lines = content.trim().split('\n').filter(l => l.includes('RUN ') || l.includes('SKIP ') || l.includes('ERROR'));
+    return lines.slice(-maxLines);
+  } catch {
+    return [];
+  }
 }
 
 function snapshotAll(prs: PRData[]): DashboardState {
