@@ -64,8 +64,10 @@ export function detectPlanet(config: Config): { name: string; dir: string } | nu
         const content = readFileSync(envPath, 'utf8');
         const nameMatch = content.match(/^SS_PLANET_NAME=(.+)$/m);
         if (nameMatch && nameMatch[1]) {
+          const raw = nameMatch[1].trim().replace(/\r$/, '').replace(/^["']|["']$/g, '');
+          const canonical = config.planets.find(p => p.toLowerCase() === raw.toLowerCase()) ?? raw;
           return {
-            name: nameMatch[1],
+            name: canonical,
             dir: currentDir
           };
         }
@@ -90,17 +92,18 @@ export function detectPlanet(config: Config): { name: string; dir: string } | nu
     const realCwd = realpathSync(cwd);
     const planetsDir = getPlanetsDir(config);
 
-    for (const p of config.planets) {
-      const pDir = join(planetsDir, p);
-      if (!existsSync(pDir)) continue;
+    // Build a case-insensitive map of actual dir entries under planets/
+    const dirEntries = existsSync(planetsDir)
+      ? readdirSync(planetsDir, { withFileTypes: true }).filter(d => d.isDirectory())
+      : [];
 
+    for (const p of config.planets) {
+      const match = dirEntries.find(d => d.name.toLowerCase() === p.toLowerCase());
+      if (!match) continue;
+      const pDir = join(planetsDir, match.name);
       const realPDir = realpathSync(pDir);
-      // Check if realCwd is realPDir or a subdirectory of it
       if (realCwd === realPDir || realCwd.startsWith(realPDir + sep)) {
-        return {
-          name: p,
-          dir: realPDir
-        };
+        return { name: p, dir: realPDir };
       }
     }
   } catch (e) {

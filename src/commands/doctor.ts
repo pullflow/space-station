@@ -109,10 +109,20 @@ export async function doctorCommand(config: Config | null, projectRoot: string, 
           const m = content.match(/^SS_PLANET_NAME=(.+)$/m);
           if (!m) {
             line('fail', p, '.env.planet missing SS_PLANET_NAME', 'Re-run `ss setup`');
-          } else if (m[1] !== p) {
-            line('fail', p, `.env.planet SS_PLANET_NAME=${m[1]} != ${p}`, 'Edit .env.planet or rename dir');
           } else {
-            line('ok', p, real === dir ? real : `${dir} → ${real}`);
+            const raw = m[1] ?? '';
+            const cleaned = raw.trim().replace(/\r$/, '').replace(/^["']|["']$/g, '');
+            if (raw !== cleaned) {
+              line('warn', p, `.env.planet SS_PLANET_NAME has quotes/whitespace/CR: ${JSON.stringify(raw)}`,
+                `Rewrite line as: SS_PLANET_NAME=${cleaned}`);
+            } else if (cleaned.toLowerCase() !== p.toLowerCase()) {
+              line('fail', p, `.env.planet SS_PLANET_NAME=${cleaned} != ${p}`, 'Edit .env.planet or rename dir');
+            } else if (cleaned !== p) {
+              line('warn', p, `case mismatch: dir uses "${cleaned}", config uses "${p}"`,
+                'Rename the planet dir to match config (case-sensitive on Linux).');
+            } else {
+              line('ok', p, real === dir ? real : `${dir} → ${real}`);
+            }
           }
         } catch (e: any) {
           line('fail', p, `.env.planet unreadable: ${e.message}`);
@@ -182,5 +192,11 @@ export async function doctorCommand(config: Config | null, projectRoot: string, 
     console.log('  ' + colors.warning(`${symbols.warning.trim()} ${issues.length} issue${issues.length === 1 ? '' : 's'}:`));
     issues.forEach((i, idx) => console.log(`    ${idx + 1}. ${i}`));
   }
+
+  header('F. Common fixes');
+  console.log(`  ${colors.dim('•')} ${colors.dim('Set SS_PATH in shell rc:')}  export SS_PATH="<spacestation root>"`);
+  console.log(`  ${colors.dim('•')} ${colors.dim('Recreate planet env files:')}  ss setup`);
+  console.log(`  ${colors.dim('•')} ${colors.dim('Stale binary?  Compare:')}    ss --version  vs  cat <ss-root>/package.json | grep version`);
+  console.log(`  ${colors.dim('•')} ${colors.dim('Add planet to config:')}      edit ss.yaml  →  planets: [...]`);
   console.log('');
 }
