@@ -5,7 +5,22 @@ import { findProjectRoot, getPlanetsDir } from '../config';
 import { detectPlanet } from '../utils/planets';
 import { colors, symbols } from '../ui/theme';
 import { VERSION } from '../utils/version';
+import { run } from '../utils/shell';
 import pc from 'picocolors';
+
+async function checkWorktree(planetDir: string): Promise<{ ok: boolean; detail: string }> {
+  const dotGit = join(planetDir, '.git');
+  if (!existsSync(dotGit)) return { ok: false, detail: 'no .git entry' };
+  const top = await run('git', ['rev-parse', '--show-toplevel'], planetDir);
+  if (top.exitCode !== 0) return { ok: false, detail: `git rev-parse failed: ${top.stderr}` };
+  const realPlanet = realpathSync(planetDir);
+  const realTop = realpathSync(top.stdout);
+  if (realTop !== realPlanet) return { ok: false, detail: `worktree top ${realTop} != planet ${realPlanet}` };
+  const wt = await run('git', ['rev-parse', '--is-inside-work-tree'], planetDir);
+  if (wt.stdout !== 'true') return { ok: false, detail: 'not inside a work tree' };
+  const branch = await run('git', ['branch', '--show-current'], planetDir);
+  return { ok: true, detail: branch.stdout || '(detached)' };
+}
 
 type Status = 'ok' | 'warn' | 'fail' | 'info';
 
@@ -128,14 +143,53 @@ export async function doctorCommand(config: Config | null, projectRoot: string, 
           line('fail', p, `.env.planet unreadable: ${e.message}`);
         }
       }
+
+      // Worktree validity
+      const wt = await checkWorktree(dir);
+      if (wt.ok) {
+        line('ok', `${p} worktree`, wt.detail);
+      } else {
+        line('fail', `${p} worktree`, wt.detail,
+          'Re-create with `ss setup` (or `git worktree add` from the bare hub).');
+      }
     }
   }
 
-  // D — Detection from cwd
-  header('D. Planet detection from cwd');
+  // D — Detection
+  header('D. Planet detection');
   if (!config) {
     line('fail', 'detectPlanet', 'cannot run — no config loaded');
   } else {
+    const realCwd0 = (() => { try { return realpathSync(process.cwd()); } catch { return process.cwd(); } })();
+    const realRoot = (() => { try { return realpathSync(config.spacestation_dir); } catch { return config.spacestation_dir; } })();
+    const atRoot = realCwd0 === realRoot;
+
+    if (atRoot) {
+      line('info', 'cwd is spacestation root', 'simulating detection from each planet dir');
+      const origCwd = process.cwd();
+      const pdir = getPlanetsDir(config);
+      for (const p of config.planets) {
+        const dir = join(pdir, p);
+        if (!existsSync(dir)) {
+          line('fail', `from ${p}/`, 'dir missing');
+          continue;
+        }
+        try {
+          process.chdir(dir);
+          const r = detectPlanet(config);
+          if (r && r.name.toLowerCase() === p.toLowerCase()) {
+            line('ok', `from ${p}/`, `→ ${r.name}`);
+          } else if (r) {
+            line('warn', `from ${p}/`, `→ ${r.name} (expected ${p})`);
+          } else {
+            line('fail', `from ${p}/`, 'detectPlanet returned null',
+              'Check .env.planet contents (Section C) and that planet is in ss.yaml planets list.');
+          }
+        } finally {
+          process.chdir(origCwd);
+        }
+      }
+    } else {
     const result = detectPlanet(config);
     if (result) {
       line('ok', 'detected', `${result.name} (${result.dir})`);
@@ -181,6 +235,7 @@ export async function doctorCommand(config: Config | null, projectRoot: string, 
       } catch {
         line('warn', 'realpath check', 'failed (planets dir missing?)');
       }
+    }
     }
   }
 
