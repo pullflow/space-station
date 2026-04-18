@@ -47,6 +47,21 @@ export async function doctorCommand(config: Config | null, projectRoot: string, 
   }
   line('info', 'projectRoot (findProjectRoot)', projectRoot);
 
+  const anySsVar = !!(process.env.SS_PATH || process.env.SS_ROOT || process.env.SS_CONFIG_PATH);
+  const cwdHasYaml = existsSync(join(process.cwd(), 'ss.yaml'));
+  const guessRoot = cwdHasYaml ? process.cwd() : (process.env.SS_PATH || projectRoot);
+  const fixHint = `Add to ~/.zshrc (or ~/.bashrc):  export SS_PATH="${guessRoot}"  then \`source ~/.zshrc\` (or open new terminal).`;
+  if (!anySsVar && !cwdHasYaml) {
+    line('fail', 'SS_PATH / SS_ROOT / SS_CONFIG_PATH',
+      'all unset and no ss.yaml in cwd — `ss` from a planet folder cannot locate ss.yaml',
+      fixHint);
+  } else if (!anySsVar && cwdHasYaml) {
+    line('warn', 'SS_PATH', 'unset (works here because ss.yaml is in cwd, but `ss` from planet folders will fail)',
+      fixHint);
+  } else {
+    line('ok', 'SS_* env var set');
+  }
+
   // B — Config
   header('B. Config');
   if (loadError) {
