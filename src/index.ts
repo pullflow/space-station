@@ -4,10 +4,8 @@ import { getAsciiLogo } from './ui/ascii';
 import { colors, symbols } from './ui/theme';
 import { loadConfig, findProjectRoot } from './config';
 import { join } from 'path';
-import { createRequire } from 'module';
 import { checkForUpdates, promptForUpdate } from './utils/updates';
-const require = createRequire(import.meta.url);
-const { version } = require('../package.json');
+import { VERSION } from './utils/version';
 
 // Command imports
 import { statusCommand } from './commands/status';
@@ -21,6 +19,7 @@ import { consoleCommand } from './commands/console';
 import { dockCommand } from './commands/dock';
 import { agentCommand } from './commands/agent';
 import { landCommand } from './commands/land';
+import { doctorCommand } from './commands/doctor';
 
 const program = new Command();
 
@@ -30,7 +29,7 @@ async function main() {
   program
     .name('ss')
     .description(`${symbols.loading} Space Station - Manage multiple parallel repo clones`)
-    .version(version);
+    .version(VERSION);
 
   program
     .command('status')
@@ -135,6 +134,17 @@ async function main() {
       await landCommand(config, projectRoot, planet);
     });
 
+  program
+    .command('doctor')
+    .alias('dx')
+    .description('Diagnose Space Station setup and planet detection from cwd')
+    .action(async () => {
+      let cfg: ReturnType<typeof loadConfig> | null = null;
+      let loadError: Error | null = null;
+      try { cfg = loadConfig(projectRoot); } catch (e: any) { loadError = e; }
+      await doctorCommand(cfg, projectRoot, loadError);
+    });
+
   // Load config once for dynamic planet commands
   let config: ReturnType<typeof loadConfig> | undefined;
   try {
@@ -145,6 +155,7 @@ async function main() {
   if (process.argv.length <= 2) {
     const logo = await getAsciiLogo();
     console.log(logo);
+    console.log(colors.dim(`  v${VERSION}`));
     // If no config exists, go straight to init (which auto-proceeds to setup)
     if (!config) {
       await initCommand(projectRoot);

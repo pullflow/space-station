@@ -8,6 +8,7 @@ import { getPlanets } from '../utils/planets';
 import { getBranch, getStatus } from '../utils/git';
 import { checkForUpdates, updateCLI } from '../utils/updates';
 import { createDashboardState, detectAndFireHooks, getActiveHooks, getRecentHookLogs } from '../utils/hooks';
+import { VERSION } from '../utils/version';
 import type { DashboardState } from '../utils/hooks';
 import pc from 'picocolors';
 
@@ -98,7 +99,7 @@ export async function dashCommand(config: Config) {
 
       // Only clear and render once we have all the data
       process.stdout.write(clear);
-      console.log(colors.primary(` 🛸 SPACE STATION MISSION DASHBOARD`));
+      console.log(colors.primary(` 🛸 SPACE STATION MISSION DASHBOARD`) + ' ' + colors.dim(`v${VERSION}`));
       
       let updateNote = '';
       if (updateAvailable) {

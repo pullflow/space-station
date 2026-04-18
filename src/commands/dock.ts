@@ -5,6 +5,7 @@ import { getBranch, getStatus } from '../utils/git';
 import { listPRs, listIssues } from '../utils/github';
 import type { PRData } from '../utils/github';
 import { colors, symbols } from '../ui/theme';
+import { VERSION } from '../utils/version';
 import pc from 'picocolors';
 
 function section(title: string) {
@@ -22,9 +23,15 @@ export async function dockCommand(config: Config) {
   // Header
   console.clear();
   console.log('');
-  console.log(colors.primary('  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓'));
-  console.log(colors.primary('  ┃       SPACE STATION — DOCK           ┃'));
-  console.log(colors.primary('  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛'));
+  const title = `SPACE STATION — DOCK  v${VERSION}`;
+  const innerWidth = Math.max(38, title.length + 8);
+  const bar = '━'.repeat(innerWidth);
+  const padTotal = innerWidth - title.length;
+  const padLeft = Math.floor(padTotal / 2);
+  const padRight = padTotal - padLeft;
+  console.log(colors.primary(`  ┏${bar}┓`));
+  console.log(colors.primary(`  ┃${' '.repeat(padLeft)}${title}${' '.repeat(padRight)}┃`));
+  console.log(colors.primary(`  ┗${bar}┛`));
 
   const s = spinner();
   s.start('Loading mission data...');

@@ -1,9 +1,7 @@
 import { intro, text, isCancel, spinner, note, select } from '@clack/prompts';
 import { existsSync, copyFileSync, chmodSync } from 'fs';
 import { join } from 'path';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { version } = require('../../package.json');
+import { VERSION } from '../utils/version';
 import type { Config } from '../config';
 import { saveConfig, getPlanetsDir } from '../config';
 import { colors, symbols } from '../ui/theme';
@@ -12,7 +10,7 @@ import { PLANET_NAMES } from '../utils/planets';
 import { setupCommand } from './setup';
 
 export async function initCommand(projectRoot: string) {
-  intro(colors.primary(`${symbols.loading} Welcome to Space Station v${version} — Setup Wizard`));
+  intro(colors.primary(`${symbols.loading} Welcome to Space Station v${VERSION} — Setup Wizard`));
 
   // 1. Dependency Check
   const s = spinner();
