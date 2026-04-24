@@ -20,7 +20,7 @@ All hooks also receive: `SS_REPO`, `SS_HOOK_EVENT`, `SS_PR_DRAFT`, `SS_PR_STATE`
 ```bash
 #!/usr/bin/env bash
 # hooks/pr_assigned.sh
-gh pr review "$SS_PR_NUMBER" -R "$SS_REPO" --approve
+ss prs approve "$SS_PR_NUMBER"
 ```
 
 ## Notes
