@@ -11,7 +11,7 @@ import { VERSION } from './utils/version';
 import { statusCommand } from './commands/status';
 import { initCommand } from './commands/init';
 import { setupCommand, symlinkSharedCommand } from './commands/setup';
-import { prsCommand } from './commands/prs';
+import { prsCommand, approvePRCommand } from './commands/prs';
 import { issuesCommand } from './commands/issues';
 import { dashCommand } from './commands/dash';
 import { resetCommand } from './commands/reset';
@@ -95,7 +95,11 @@ async function main() {
     .description('List or checkout PRs')
     .action(async (number, planet) => {
       const config = loadConfig(projectRoot);
-      await prsCommand(config, projectRoot, number, planet);
+      if (number === 'approve' && planet) {
+        await approvePRCommand(config, parseInt(planet));
+      } else {
+        await prsCommand(config, projectRoot, number, planet);
+      }
     });
 
   program

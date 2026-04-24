@@ -2,7 +2,7 @@ import { intro, outro, spinner, select, isCancel, note } from '@clack/prompts';
 import type { Config } from '../config';
 import { getPlanetsDir } from '../config';
 import { colors, symbols } from '../ui/theme';
-import { listPRs, getPRDetails } from '../utils/github';
+import { listPRs, getPRDetails, approvePR } from '../utils/github';
 import type { PRData } from '../utils/github';
 import { getPlanets, PLANET_NAMES } from '../utils/planets';
 import { fetchHub, checkout, mergeMain } from '../utils/git';
@@ -77,6 +77,21 @@ export async function prsCommand(config: Config, projectRoot: string, prNumber?:
 
   if (isCancel(choice)) return;
 
+  const action = await select({
+    message: 'What would you like to do with this PR?',
+    options: [
+      { value: 'checkout', label: `${symbols.rocket} Checkout to a planet` },
+      { value: 'approve', label: `${symbols.success} Auto-approve` },
+    ],
+  });
+
+  if (isCancel(action)) return;
+
+  if (action === 'approve') {
+    await approvePRCommand(config, parseInt(choice as string));
+    return;
+  }
+
   const planetChoice = await select({
     message: 'Which planet should this PR land on?',
     options: [
@@ -138,3 +153,32 @@ async function checkoutPR(config: Config, projectRoot: string, prNumber: number,
   await Bun.spawn([config.editor, ...editorArgs]);
   s.stop(colors.success('Editor opened'));
 }
+
+export async function approvePRCommand(config: Config, prNumber: number) {
+  const messages = [
+    'Looks good.',
+    'LGTM',
+    'Approved',
+    'Good work!',
+    'Nice changes!',
+    'Ship it!',
+    'Great job!',
+    'Verified.',
+    'Passes review.',
+    'Ready to merge.',
+  ];
+
+  const message = messages[Math.floor(Math.random() * messages.length)] || 'Approved';
+  
+  const s = spinner();
+  s.start(`Approving PR #${prNumber} with message: "${message}"...`);
+  
+  const success = await approvePR(prNumber, config.repo, message);
+  
+  if (success) {
+    s.stop(colors.success(`PR #${prNumber} approved! ${symbols.rocket}`));
+  } else {
+    s.stop(colors.error(`Failed to approve PR #${prNumber}. Check if you have permission or if the PR is still open.`));
+  }
+}
+

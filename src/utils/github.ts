@@ -44,6 +44,18 @@ export async function listPRs(repo: string, filter: 'authored' | 'review' | 'ass
   }
 }
 
+export async function approvePR(number: number, repo: string, message: string): Promise<boolean> {
+  const { exitCode } = await run('gh', [
+    'pr', 'review',
+    number.toString(),
+    '-R', repo,
+    '--approve',
+    '--body', message
+  ]);
+
+  return exitCode === 0;
+}
+
 export async function getPRDetails(number: number, repo: string): Promise<PRData | null> {
   const { stdout, exitCode } = await run('gh', [
     'pr', 'view',
